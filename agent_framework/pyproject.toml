@@ -1,0 +1,25 @@
+[project]
+name = "libertai-agents-self-hosting"
+version = "0.1.0"
+description = "Wrapper of LibertAI's AI Agents framework to add self-hosting payment"
+authors = [
+    { name = "Reza Rahemtola", email = "contact@rezar.fr" }
+]
+readme = "README.md"
+requires-python = ">=3.12,<4.0"
+dependencies = [
+    "libertai-agents (>=0.1.4,<0.2.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.9.7"
+mypy = "^1.15.0"
+
+[tool.ruff]
+lint.select = ["C", "E", "F", "I", "W"]
+lint.ignore = ["E501"]
