@@ -6,7 +6,7 @@ authors = [
     { name = "Reza Rahemtola", email = "contact@rezar.fr" }
 ]
 readme = "README.md"
-requires-python = ">=3.12,<4.0"
+requires-python = ">=3.10,<4.0"
 dependencies = [
     "libertai-agents (>=0.1.5,<0.2.0)",
     "coinbase-agentkit (>=0.1.3,<0.2.0)",
