@@ -71,15 +71,15 @@ class AlephConvertionProvider(ActionProvider[EvmWalletProvider]):
             address = wallet_provider.get_address()
 
             # Token Addresses (on Base)
-            WETH_ADDRESS = Web3.to_checksum_address(
+            weth_address = Web3.to_checksum_address(
                 "0x4200000000000000000000000000000000000006"
             )
-            ALEPH_ADDRESS = Web3.to_checksum_address(
+            aleph_address = Web3.to_checksum_address(
                 "0xc0Fbc4967259786C743361a5885ef49380473dCF"
             )
 
             # Fee Tier (1%)
-            FEE_TIER = 10000
+            fee_tier = 10000
 
             # Amount to swap
             amount_in_wei = Web3.to_wei(validated_args.eth_amount, "ether")
@@ -95,9 +95,9 @@ class AlephConvertionProvider(ActionProvider[EvmWalletProvider]):
             # Transaction Data (Using exactInputSingle)
             tx = contract.functions.exactInputSingle(
                 {
-                    "tokenIn": WETH_ADDRESS,
-                    "tokenOut": ALEPH_ADDRESS,
-                    "fee": FEE_TIER,
+                    "tokenIn": weth_address,
+                    "tokenOut": aleph_address,
+                    "fee": fee_tier,
                     "recipient": address,
                     "deadline": deadline,
                     "amountIn": amount_in_wei,
