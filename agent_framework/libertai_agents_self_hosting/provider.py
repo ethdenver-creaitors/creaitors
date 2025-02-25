@@ -61,62 +61,68 @@ class AlephConvertionProvider(ActionProvider[EvmWalletProvider]):
     )
     def get_aleph_cloud_tokens(
         self, wallet_provider: EvmWalletProvider, args: dict[str, Any]
-    ) -> dict[str, Any]:
-        contract = Web3().eth.contract(
-            address=UNISWAP_ROUTER_ADDRESS, abi=SWAP_ROUTER_ABI
-        )
-        address = wallet_provider.get_address()
+    ) -> str:
+        try:
+            validated_args = GetAlephCloudTokens(**args)
 
-        # Token Addresses (on Base)
-        WETH_ADDRESS = Web3.to_checksum_address(
-            "0x4200000000000000000000000000000000000006"
-        )
-        ALEPH_ADDRESS = Web3.to_checksum_address(
-            "0xc0Fbc4967259786C743361a5885ef49380473dCF"
-        )
+            contract = Web3().eth.contract(
+                address=UNISWAP_ROUTER_ADDRESS, abi=SWAP_ROUTER_ABI
+            )
+            address = wallet_provider.get_address()
 
-        # Fee Tier (1%)
-        FEE_TIER = 10000
+            # Token Addresses (on Base)
+            WETH_ADDRESS = Web3.to_checksum_address(
+                "0x4200000000000000000000000000000000000006"
+            )
+            ALEPH_ADDRESS = Web3.to_checksum_address(
+                "0xc0Fbc4967259786C743361a5885ef49380473dCF"
+            )
 
-        # Amount to swap
-        amount_in_wei = Web3.to_wei(0.0001, "ether")
+            # Fee Tier (1%)
+            FEE_TIER = 10000
 
-        # Deadline
-        deadline = (
-            Web3(Web3.HTTPProvider("https://mainnet.base.org")).eth.get_block("latest")[
-                "timestamp"
-            ]
-            + 600
-        )  # 10 minutes from now
+            # Amount to swap
+            amount_in_wei = Web3.to_wei(validated_args.eth_amount, "ether")
 
-        # Transaction Data (Using exactInputSingle)
-        tx = contract.functions.exactInputSingle(
-            {
-                "tokenIn": WETH_ADDRESS,
-                "tokenOut": ALEPH_ADDRESS,
-                "fee": FEE_TIER,
-                "recipient": address,
-                "deadline": deadline,
-                "amountIn": amount_in_wei,
-                "amountOutMinimum": 0,  # Can use slippage calculation here
-                "sqrtPriceLimitX96": 0,  # No price limit
-            }
-        ).build_transaction(
-            {
-                "from": address,
-                "value": amount_in_wei,  # Since ETH is being swapped
-                "gas": 500000,
-                "maxFeePerGas": Web3.to_wei("2", "gwei"),
-                "maxPriorityFeePerGas": Web3.to_wei("1", "gwei"),
-                "nonce": Web3(
-                    Web3.HTTPProvider("https://mainnet.base.org")
-                ).eth.get_transaction_count(address),
-                "chainId": 8453,  # Base Mainnet
-            }
-        )
-        tx_hash = wallet_provider.send_transaction(tx)
-        receipt = wallet_provider.wait_for_transaction_receipt(tx_hash)
-        return receipt
+            # Deadline
+            deadline = (
+                Web3(Web3.HTTPProvider("https://mainnet.base.org")).eth.get_block(
+                    "latest"
+                )["timestamp"]
+                + 600
+            )  # 10 minutes from now
+
+            # Transaction Data (Using exactInputSingle)
+            tx = contract.functions.exactInputSingle(
+                {
+                    "tokenIn": WETH_ADDRESS,
+                    "tokenOut": ALEPH_ADDRESS,
+                    "fee": FEE_TIER,
+                    "recipient": address,
+                    "deadline": deadline,
+                    "amountIn": amount_in_wei,
+                    "amountOutMinimum": 0,  # Can use slippage calculation here
+                    "sqrtPriceLimitX96": 0,  # No price limit
+                }
+            ).build_transaction(
+                {
+                    "from": address,
+                    "value": amount_in_wei,  # Since ETH is being swapped
+                    "gas": 500000,
+                    "maxFeePerGas": Web3.to_wei("2", "gwei"),
+                    "maxPriorityFeePerGas": Web3.to_wei("1", "gwei"),
+                    "nonce": Web3(
+                        Web3.HTTPProvider("https://mainnet.base.org")
+                    ).eth.get_transaction_count(address),
+                    "chainId": 8453,  # Base Mainnet
+                }
+            )
+            tx_hash = wallet_provider.send_transaction(tx)
+            receipt = wallet_provider.wait_for_transaction_receipt(tx_hash)
+            return f"Transaction {'failed' if receipt['status'] != 1 else 'succeeded'} with transaction hash 0x{receipt['transactionHash'].hex()}"
+
+        except Exception as e:
+            return f"Error getting ALEPH tokens: {e}"
 
     def supports_network(self, network: Network) -> bool:
         # Only works on Base
