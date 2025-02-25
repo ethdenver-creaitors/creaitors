@@ -10,6 +10,10 @@ class GetAlephCloudTokens(BaseModel):
     eth_amount: float
 
 
+class GetAlephInfo(BaseModel):
+    pass
+
+
 UNISWAP_ROUTER_ADDRESS = Web3.to_checksum_address(
     "0x2626664c2603336E57B271c5C0b26F421741e481"
 )
@@ -55,7 +59,21 @@ class AlephConvertionProvider(ActionProvider[EvmWalletProvider]):
         super().__init__("aleph-conversion-provider", [])
 
     @create_action(
-        name="get-aleph-cloud-tokens",
+        name="get_aleph_info",
+        description="Get information about your current ALEPH balance, consumation rate for computing and ETH balance",
+        schema=GetAlephInfo,
+    )
+    def get_aleph_info(
+        self, wallet_provider: EvmWalletProvider, args: dict[str, Any]
+    ) -> dict[str, Any]:
+        return {
+            "aleph_balance": 3,
+            "aleph_consumed_per_hour": 0.1,
+            "eth_balance": 0.005,
+        }
+
+    @create_action(
+        name="get_aleph_cloud_tokens",
         description="Convert some ETH to ALEPH to pay for your computing",
         schema=GetAlephCloudTokens,
     )
