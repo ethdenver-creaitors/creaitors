@@ -48,7 +48,7 @@ class AlephConvertionProvider(ActionProvider[EvmWalletProvider]):
         schema=GetAlephInfo,
     )
     def get_aleph_info(
-        self, wallet_provider: EvmWalletProvider, args: dict[str, Any]
+        self, wallet_provider: EvmWalletProvider, _args: dict[str, Any]
     ) -> dict[str, Any]:
         aleph_balance = wallet_provider.read_contract(
             contract_address=ALEPH_ADDRESS,
