@@ -1,3 +1,5 @@
+import json
+import os
 from typing import Any
 
 from coinbase_agentkit import ActionProvider, EvmWalletProvider, create_action
@@ -21,42 +23,19 @@ UNISWAP_ROUTER_ADDRESS = Web3.to_checksum_address(
 
 WETH_ADDRESS = Web3.to_checksum_address("0x4200000000000000000000000000000000000006")
 ALEPH_ADDRESS = Web3.to_checksum_address("0xc0Fbc4967259786C743361a5885ef49380473dCF")
+UNISWAP_ALEPH_POOL_ADDRESS = Web3.to_checksum_address(
+    "0xe11C66b25F0e9a9eBEf1616B43424CC6E2168FC8"
+)
 
+code_dir = os.path.dirname(os.path.abspath(__file__))
 
-SWAP_ROUTER_ABI = [
-    {
-        "inputs": [
-            {
-                "components": [
-                    {"internalType": "address", "name": "tokenIn", "type": "address"},
-                    {"internalType": "address", "name": "tokenOut", "type": "address"},
-                    {"internalType": "uint24", "name": "fee", "type": "uint24"},
-                    {"internalType": "address", "name": "recipient", "type": "address"},
-                    {"internalType": "uint256", "name": "amountIn", "type": "uint256"},
-                    {
-                        "internalType": "uint256",
-                        "name": "amountOutMinimum",
-                        "type": "uint256",
-                    },
-                    {
-                        "internalType": "uint160",
-                        "name": "sqrtPriceLimitX96",
-                        "type": "uint160",
-                    },
-                ],
-                "internalType": "struct IV3SwapRouter.ExactInputSingleParams",
-                "name": "params",
-                "type": "tuple",
-            }
-        ],
-        "name": "exactInputSingle",
-        "outputs": [
-            {"internalType": "uint256", "name": "amountOut", "type": "uint256"}
-        ],
-        "stateMutability": "payable",
-        "type": "function",
-    }
-]
+with open(os.path.join(code_dir, "abis/uniswap_router.json"), "r") as abi_file:
+    SWAP_ROUTER_ABI = json.load(abi_file)
+
+with open(os.path.join(code_dir, "abis/uniswap_v3_pool.json"), "r") as abi_file:
+    POOL_ABI = json.load(abi_file)
+
+w3 = Web3(Web3.HTTPProvider("https://mainnet.base.org"))
 
 
 class AlephConvertionProvider(ActionProvider[EvmWalletProvider]):
@@ -80,13 +59,23 @@ class AlephConvertionProvider(ActionProvider[EvmWalletProvider]):
         eth_balance = float(Web3.from_wei(wallet_provider.get_balance(), "ether"))  # type: ignore
 
         formatted_aleph_balance = float(Web3.from_wei(aleph_balance, "ether"))
-        aleph_consumed_per_hour = 0.1
+        aleph_consumed_per_hour = 0.1  # TODO: real fetch
+
+        aleph_pool_contract = w3.eth.contract(
+            address=UNISWAP_ALEPH_POOL_ADDRESS, abi=POOL_ABI
+        )
+        slot0 = aleph_pool_contract.functions.slot0().call()
+        sqrtPriceX96 = slot0[0]  # Extract sqrtPriceX96
+
+        # Calculate token price from sqrtPriceX96
+        nb_aleph_for_1_eth = (sqrtPriceX96 / (2**96)) ** 2  # Uniswap V3 formula
 
         return {
             "aleph_balance": formatted_aleph_balance,
             "aleph_consumed_per_hour": aleph_consumed_per_hour,
             "hours_left_until_death": formatted_aleph_balance / aleph_consumed_per_hour,
             "eth_balance": eth_balance,
+            "price_of_aleph_per_eth": nb_aleph_for_1_eth,
         }
 
     @create_action(
@@ -113,10 +102,7 @@ class AlephConvertionProvider(ActionProvider[EvmWalletProvider]):
 
             # Deadline
             deadline = (
-                Web3(Web3.HTTPProvider("https://mainnet.base.org")).eth.get_block(
-                    "latest"
-                )["timestamp"]
-                + 600
+                w3.eth.get_block("latest")["timestamp"] + 600
             )  # 10 minutes from now
 
             # Transaction Data (Using exactInputSingle)
@@ -138,9 +124,7 @@ class AlephConvertionProvider(ActionProvider[EvmWalletProvider]):
                     "gas": 500000,
                     "maxFeePerGas": Web3.to_wei("2", "gwei"),
                     "maxPriorityFeePerGas": Web3.to_wei("1", "gwei"),
-                    "nonce": Web3(
-                        Web3.HTTPProvider("https://mainnet.base.org")
-                    ).eth.get_transaction_count(address),
+                    "nonce": w3.eth.get_transaction_count(address),
                     "chainId": 8453,  # Base Mainnet
                 }
             )
