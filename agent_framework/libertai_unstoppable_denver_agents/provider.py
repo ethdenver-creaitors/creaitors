@@ -1,6 +1,7 @@
 from typing import Any
 
 from coinbase_agentkit import ActionProvider, EvmWalletProvider, create_action
+from coinbase_agentkit.action_providers.erc20.constants import ERC20_ABI
 from coinbase_agentkit.network import Network
 from pydantic import BaseModel
 from web3 import Web3
@@ -17,6 +18,10 @@ class GetAlephInfo(BaseModel):
 UNISWAP_ROUTER_ADDRESS = Web3.to_checksum_address(
     "0x2626664c2603336E57B271c5C0b26F421741e481"
 )
+
+WETH_ADDRESS = Web3.to_checksum_address("0x4200000000000000000000000000000000000006")
+ALEPH_ADDRESS = Web3.to_checksum_address("0xc0Fbc4967259786C743361a5885ef49380473dCF")
+
 
 SWAP_ROUTER_ABI = [
     {
@@ -60,16 +65,28 @@ class AlephConvertionProvider(ActionProvider[EvmWalletProvider]):
 
     @create_action(
         name="get_aleph_info",
-        description="Get information about your current ALEPH balance, consumation rate for computing and ETH balance",
+        description="Get information about your current ALEPH balance, consumation rate for computing, and ETH balance",
         schema=GetAlephInfo,
     )
     def get_aleph_info(
         self, wallet_provider: EvmWalletProvider, args: dict[str, Any]
     ) -> dict[str, Any]:
+        aleph_balance = wallet_provider.read_contract(
+            contract_address=ALEPH_ADDRESS,
+            abi=ERC20_ABI,
+            function_name="balanceOf",
+            args=[wallet_provider.get_address()],
+        )
+        eth_balance = float(Web3.from_wei(wallet_provider.get_balance(), "ether"))  # type: ignore
+
+        formatted_aleph_balance = float(Web3.from_wei(aleph_balance, "ether"))
+        aleph_consumed_per_hour = 0.1
+
         return {
-            "aleph_balance": 3,
-            "aleph_consumed_per_hour": 0.1,
-            "eth_balance": 0.005,
+            "aleph_balance": formatted_aleph_balance,
+            "aleph_consumed_per_hour": aleph_consumed_per_hour,
+            "hours_left_until_death": formatted_aleph_balance / aleph_consumed_per_hour,
+            "eth_balance": eth_balance,
         }
 
     @create_action(
@@ -88,14 +105,6 @@ class AlephConvertionProvider(ActionProvider[EvmWalletProvider]):
             )
             address = wallet_provider.get_address()
 
-            # Token Addresses (on Base)
-            weth_address = Web3.to_checksum_address(
-                "0x4200000000000000000000000000000000000006"
-            )
-            aleph_address = Web3.to_checksum_address(
-                "0xc0Fbc4967259786C743361a5885ef49380473dCF"
-            )
-
             # Fee Tier (1%)
             fee_tier = 10000
 
@@ -113,8 +122,8 @@ class AlephConvertionProvider(ActionProvider[EvmWalletProvider]):
             # Transaction Data (Using exactInputSingle)
             tx = contract.functions.exactInputSingle(
                 {
-                    "tokenIn": weth_address,
-                    "tokenOut": aleph_address,
+                    "tokenIn": WETH_ADDRESS,
+                    "tokenOut": ALEPH_ADDRESS,
                     "fee": fee_tier,
                     "recipient": address,
                     "deadline": deadline,
