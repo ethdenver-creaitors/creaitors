@@ -28,7 +28,7 @@ from .utils import get_provider_langchain_tools
 class AutonomousAgent:
     agent: ChatAgent
     autonomous_agent_config: AutonomousAgentConfig
-    done: bool = False
+    __computing_think_done: bool = False
 
     def __init__(
         self, autonomous_config: AutonomousAgentConfig, **kwargs: Unpack[ChatAgentArgs]
@@ -92,7 +92,10 @@ class AutonomousAgent:
 
     async def manage_computing_credits(self) -> None:
         """Call the agent to make it decide if it wants to buy $ALEPH for computing or not"""
-        if self.done is True:
+        if (
+            self.autonomous_agent_config.debug_run_once
+            and self.__computing_think_done is True
+        ):
             return
         async for message in self.agent.generate_answer(
             messages=[
@@ -105,7 +108,7 @@ class AutonomousAgent:
             only_final_answer=False,
         ):
             print(message)
-        self.done = True
+        self.__computing_think_done = True
 
     def schedule_cloud_credits_thinking(self) -> None:
         """Schedules the cloud credits reflexion task"""
