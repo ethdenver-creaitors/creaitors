@@ -70,7 +70,7 @@ class AlephConvertionProvider(ActionProvider[EvmWalletProvider]):
 
             superfluid_graphql_variables = {
                 "where": {
-                    "account": "0xe1f7220d201c64871cefb25320a8a588393ee508",
+                    "account": wallet_provider.get_address().lower(),
                     "token_": {"isListed": True},
                 },
             }
