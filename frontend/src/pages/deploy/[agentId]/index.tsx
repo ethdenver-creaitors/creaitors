@@ -73,6 +73,20 @@ export default function DeployAgentPage() {
       agent_key: signedAgentKey,
     };
     console.log("requestBody", requestBody);
+
+    const response = await fetch("/api/deploy", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    console.log("response", response);
+
+    if (response.ok) {
+      router.push(`/deployed-agents/${data.agentId}`);
+    }
   };
 
   if (isLoadingAgents) return <div>Loading...</div>;
@@ -87,7 +101,6 @@ export default function DeployAgentPage() {
         </div>
         <Separator orientation="vertical" className="w-1" />
       </div>
-      <div className="h-full"></div>
       <div className="flex flex-col gap-4 max-w-[66%]">
         <p className="font-extrabold text-5xl">Configure Agent Deploy</p>
         <Form {...form}>

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import UploadAgentForm from "@/components/UploadAgentForm";
 import useFetchAgents from "@/hooks/useFetchAgents";
 import { Agent } from "@/types/agent";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter as useNavigationRouter } from "next/navigation";
 
 export default function Home() {
@@ -15,6 +15,7 @@ export default function Home() {
 
   const { agents, isLoading } = useFetchAgents();
 
+  const [isMounted, setIsMounted] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<Agent>();
   const [sidePanelContentType, setSidePanelContentType] = useState<
     "agent" | "upload-agent"
@@ -70,6 +71,10 @@ export default function Home() {
     return Boolean(sidePanelContentType);
   }, [sidePanelContentType]);
 
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   return (
     <PageContainer>
       <div className="flex flex-wrap justify-center items-start gap-12">
@@ -88,11 +93,13 @@ export default function Home() {
       <div className="flex justify-center mt-10">
         <Button onClick={handleUploadAgent}>Upload AI Agent</Button>
       </div>
-      <SidePanel
-        isOpen={isSidePanelOpen}
-        onClose={handleSidePanelClose}
-        {...sidePanelProps}
-      />
+      {isMounted && (
+        <SidePanel
+          isOpen={isSidePanelOpen}
+          onClose={handleSidePanelClose}
+          {...sidePanelProps}
+        />
+      )}
     </PageContainer>
   );
 }
