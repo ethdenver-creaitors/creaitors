@@ -21,7 +21,7 @@ from libertai_agents.interfaces.tools import Tool
 from typing_extensions import Unpack
 
 from .interfaces import AutonomousAgentConfig, ChatAgentArgs
-from .provider import aleph_convertion_action_provider
+from .provider import aleph_action_provider
 from .utils import get_provider_langchain_tools
 
 
@@ -54,7 +54,7 @@ class AutonomousAgent:
             AgentKitConfig(
                 wallet_provider=wallet_provider,
                 action_providers=[
-                    aleph_convertion_action_provider(),
+                    aleph_action_provider(),
                     erc20_action_provider(),
                     wallet_action_provider(),
                 ],
@@ -99,6 +99,14 @@ class AutonomousAgent:
             and self.__computing_think_done is True
         ):
             return
+
+        prompt = (
+            self.autonomous_agent_config.computing_credits_system_prompt
+            if self.autonomous_agent_config.allow_suicide is False
+            else self.autonomous_agent_config.computing_credits_system_prompt
+            + self.autonomous_agent_config.suicide_system_prompt
+        )
+
         async for message in self.agent.generate_answer(
             messages=[
                 Message(
@@ -106,7 +114,7 @@ class AutonomousAgent:
                     content="Perform your task",
                 )
             ],
-            system_prompt=self.autonomous_agent_config.computing_credits_system_prompt,
+            system_prompt=prompt,
             only_final_answer=False,
         ):
             print(message)

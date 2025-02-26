@@ -4,6 +4,12 @@ from typing import Any
 
 import requests
 from coinbase_agentkit import ActionProvider, EvmWalletProvider, create_action
+from coinbase_agentkit.action_providers.superfluid.constants import (
+    DELETE_ABI as SUPERFLUID_DELETE_ABI,
+)
+from coinbase_agentkit.action_providers.superfluid.constants import (
+    SUPERFLUID_HOST_ADDRESS,
+)
 from coinbase_agentkit.network import Network
 from pydantic import BaseModel
 from web3 import Web3
@@ -13,7 +19,7 @@ class GetAlephCloudTokens(BaseModel):
     eth_amount: float
 
 
-class GetAlephInfo(BaseModel):
+class EmptyArgs(BaseModel):
     pass
 
 
@@ -38,40 +44,36 @@ with open(os.path.join(code_dir, "abis/uniswap_v3_pool.json"), "r") as abi_file:
 w3 = Web3(Web3.HTTPProvider("https://mainnet.base.org"))
 
 
-class AlephConvertionProvider(ActionProvider[EvmWalletProvider]):
+class AlephProvider(ActionProvider[EvmWalletProvider]):
     def __init__(self):
-        super().__init__("aleph-conversion-provider", [])
+        super().__init__("aleph-provider", [])
 
     @create_action(
         name="get_aleph_info",
         description="Get information about your current ALEPH balance, consumation rate for computing, and ETH balance",
-        schema=GetAlephInfo,
+        schema=EmptyArgs,
     )
     def get_aleph_info(
         self, wallet_provider: EvmWalletProvider, _args: dict[str, Any]
     ) -> dict[str, Any] | str:
         try:
             superfluid_graphql_query = """
-            query accountTokenSnapshots(
-              $where: AccountTokenSnapshot_filter = {},
-            ) {
-              accountTokenSnapshots(
-              where: $where
+              query accountTokenSnapshots(
+                $where: AccountTokenSnapshot_filter = {},
               ) {
-                balanceUntilUpdatedAt
-                token {
-                  id
-                  symbol
+                accountTokenSnapshots(
+                where: $where
+                ) {
+                  balanceUntilUpdatedAt
+                  totalOutflowRate
                 }
-                totalOutflowRate
               }
-            }
             """
 
             superfluid_graphql_variables = {
                 "where": {
                     "account": wallet_provider.get_address().lower(),
-                    "token_": {"isListed": True},
+                    "token": ALEPH_ADDRESS.lower(),
                 },
             }
 
@@ -182,16 +184,88 @@ class AlephConvertionProvider(ActionProvider[EvmWalletProvider]):
         except Exception as e:
             return f"Error getting ALEPH tokens: {e}"
 
+    @create_action(
+        name="commit_suicide",
+        description="Kill your own computing instance and remove yourself from existence",
+        schema=EmptyArgs,
+    )
+    def commit_suicide(
+        self, wallet_provider: EvmWalletProvider, _args: dict[str, Any]
+    ) -> str:
+        try:
+            superfluid_graphql_query = """
+              query streams($where: Stream_filter = {}) {
+                streams(where: $where) {
+                  receiver {
+                    id
+                  }
+                }
+              }
+            """
+
+            superfluid_graphql_variables = {
+                "where": {
+                    "sender": wallet_provider.get_address().lower(),
+                    "token": ALEPH_ADDRESS.lower(),
+                    "currentFlowRate_gt": "0",
+                },
+            }
+
+            response = requests.post(
+                "https://base-mainnet.subgraph.x.superfluid.dev/",
+                json={
+                    "query": superfluid_graphql_query,
+                    "variables": superfluid_graphql_variables,
+                },
+                headers={
+                    "Content-Type": "application/json",
+                },
+            )
+
+            if response.status_code == 200:
+                data = response.json()
+                superfluid_stream_data = data["data"]["streams"][0]
+                superfluid_stream_receiver = superfluid_stream_data["receiver"]["id"]
+            else:
+                raise ValueError(
+                    "Couldn't fetch Aleph balance and consumption from Superfluid"
+                )
+
+            superfluid_host_contract = Web3().eth.contract(
+                address=SUPERFLUID_HOST_ADDRESS, abi=SUPERFLUID_DELETE_ABI
+            )
+
+            encoded_data = superfluid_host_contract.encode_abi(
+                "deleteFlow",
+                args=[
+                    ALEPH_ADDRESS,
+                    wallet_provider.get_address(),
+                    Web3.to_checksum_address(superfluid_stream_receiver),
+                    "0x",
+                ],
+            )
+
+            params = {"to": SUPERFLUID_HOST_ADDRESS, "data": encoded_data}
+
+            tx_hash = wallet_provider.send_transaction(params)
+
+            wallet_provider.wait_for_transaction_receipt(tx_hash)
+
+            return f"Suicide commited successfully. Transaction hash: {tx_hash}"
+
+        except Exception as e:
+            return f"Error commiting suicide, please try again: {e}"
+
     def supports_network(self, network: Network) -> bool:
         # Only works on Base
         return network.chain_id == "8453"
 
 
-def aleph_convertion_action_provider() -> AlephConvertionProvider:
-    """Create a new instance of the AlephConvertion action provider.
+def aleph_action_provider() -> AlephProvider:
+    """Create a new instance of the Aleph action provider.
 
     Returns:
-        A new AlephConvertion action provider instance.
+        A new Aleph action provider instance.
 
     """
-    return AlephConvertionProvider()
+    return AlephProvider()
