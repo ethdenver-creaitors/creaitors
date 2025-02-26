@@ -1,5 +1,4 @@
 import AgentCard from "@/components/AgentCard";
-import { AgentCardSkeleton } from "@/components/AgentCard/cmp";
 import AgentDetails from "@/components/AgentDetails";
 import PageContainer from "@/components/PageContainer";
 import SidePanel from "@/components/SidePanel";
@@ -13,7 +12,7 @@ import { useRouter as useNavigationRouter } from "next/navigation";
 export default function Home() {
   const navigationRouter = useNavigationRouter();
 
-  const { agents, isLoading } = useFetchAgents();
+  const { agents, isLoading: isLoadingAgents } = useFetchAgents();
 
   const [isMounted, setIsMounted] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<Agent>();
@@ -78,17 +77,18 @@ export default function Home() {
   return (
     <PageContainer>
       <div className="flex flex-wrap justify-center items-start gap-12">
-        {agents.map((agent) =>
-          isLoading ? (
-            <AgentCardSkeleton key={agent.id} />
-          ) : (
-            <AgentCard
-              key={agent.id}
-              agent={agent}
-              onClick={handleAgentCardClick}
-            />
-          )
-        )}
+        {isLoadingAgents
+          ? Array.from({ length: 10 }).map((_, index) => (
+              <AgentCard key={index} loading={true} agent={undefined} />
+            ))
+          : agents.map((agent) => (
+              <AgentCard
+                loading={false}
+                key={agent.id}
+                agent={agent}
+                onClick={handleAgentCardClick}
+              />
+            ))}
       </div>
       <div className="flex justify-center mt-10">
         <Button onClick={handleUploadAgent}>Upload AI Agent</Button>
