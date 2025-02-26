@@ -3,6 +3,8 @@ import os
 from decimal import Decimal
 
 from aleph.sdk.chains.ethereum import ETHAccount
+from aleph.sdk.exceptions import InsufficientFundsError
+from aleph.sdk.types import TokenType
 
 from eth_account import Account
 from eth_account.account import LocalAccount
@@ -16,7 +18,6 @@ ALEPH_ADDRESS = Web3.to_checksum_address("0xc0Fbc4967259786C743361a5885ef4938047
 UNISWAP_ALEPH_POOL_ADDRESS = Web3.to_checksum_address(
     "0xe11C66b25F0e9a9eBEf1616B43424CC6E2168FC8"
 )
-MINIMAL_ETH_AMOUNT = Decimal(0.0001)
 
 code_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -40,9 +41,6 @@ def convert_aleph_to_eth(required_tokens: Decimal) -> Decimal:
     nb_aleph_for_1_eth = Decimal((sqrt_price_x96 / (2**96)) ** 2)  # Uniswap V3 formula
     required_eth_tokens = required_tokens / nb_aleph_for_1_eth
     print(f"This {required_tokens} $ALEPH are {required_eth_tokens} $ETH tokens")
-    if required_eth_tokens < MINIMAL_ETH_AMOUNT:
-        required_eth_tokens = MINIMAL_ETH_AMOUNT
-        print(f"ETH amount is so less, converting {required_eth_tokens}")
 
     return required_eth_tokens
 
@@ -62,10 +60,15 @@ def make_eth_to_aleph_conversion(aleph_account: ETHAccount, required_eth_tokens:
     amount_in_wei = w3.to_wei(required_eth_tokens, "ether")
     print(amount_in_wei)
 
-    # Deadline
-    deadline = (
-            w3.eth.get_block("latest")["timestamp"] + 600
-    )  # 10 minutes from now
+    # Fetch current base fee from the latest block
+    latest_block = w3.eth.get_block('latest')
+    base_fee = latest_block['baseFeePerGas']
+
+    # Set priority fee (tip to miners)
+    priority_fee = Web3.to_wei(2, 'gwei')  # Adjust based on network congestion
+
+    # Calculate max fee (base fee + priority fee)
+    max_fee = base_fee + priority_fee
 
     # Transaction Data (Using exactInputSingle)
     tx = contract.functions.exactInputSingle(
@@ -74,7 +77,6 @@ def make_eth_to_aleph_conversion(aleph_account: ETHAccount, required_eth_tokens:
             "tokenOut": ALEPH_ADDRESS,
             "fee": fee_tier,
             "recipient": address,
-            "deadline": deadline,
             "amountIn": amount_in_wei,
             "amountOutMinimum": 0,  # Can use slippage calculation here
             "sqrtPriceLimitX96": 0,  # No price limit
@@ -83,13 +85,20 @@ def make_eth_to_aleph_conversion(aleph_account: ETHAccount, required_eth_tokens:
         {
             "from": address,
             "value": amount_in_wei,  # Since ETH is being swapped
-            "gas": 50000,
-            "maxFeePerGas": w3.to_wei('2', 'gwei'),
-            "maxPriorityFeePerGas": w3.to_wei('1', 'gwei'),
+            "gas": 300000,
+            'maxFeePerGas': max_fee,
+            'maxPriorityFeePerGas': priority_fee,
             "nonce": w3.eth.get_transaction_count(address),
             "chainId": 8453,  # Base Mainnet
         }
     )
+
+    # First simulate the transaction
+    try:
+        w3.eth.call(tx)
+    except Exception as e:
+        print(f"Error en simulación: {e}")
+
     signed_transaction = w3.eth.account.sign_transaction(tx, private_key=aleph_account.export_private_key())
     tx_hash = w3.eth.send_raw_transaction(signed_transaction.rawTransaction)
     receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
@@ -97,3 +106,19 @@ def make_eth_to_aleph_conversion(aleph_account: ETHAccount, required_eth_tokens:
           f" with transaction hash {receipt['transactionHash'].hex()}")
     return str(receipt['transactionHash'].hex())
 
+
+CUSTOM_MIN_ETH_BALANCE = 0.0005  # Require only $1 of ETH for gas fees
+CUSTOM_MIN_ETH_BALANCE_WEI = w3.to_wei(Decimal(CUSTOM_MIN_ETH_BALANCE), "ether")
+
+
+class CustomETHAccount(ETHAccount):
+    def can_transact(self, block=True) -> bool:
+        balance = self.get_eth_balance()
+        valid = balance > CUSTOM_MIN_ETH_BALANCE_WEI if self.chain else False
+        if not valid and block:
+            raise InsufficientFundsError(
+                token_type=TokenType.GAS,
+                required_funds=CUSTOM_MIN_ETH_BALANCE,
+                available_funds=float(w3.from_wei(int(balance), "ether")),
+            )
+        return valid

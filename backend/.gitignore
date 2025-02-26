@@ -3,3 +3,6 @@
 
 # Dependencies
 venv
+
+# Env variables
+.env

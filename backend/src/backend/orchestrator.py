@@ -21,7 +21,7 @@ from backend.config import config
 from backend.models import CRNInfo, AgentDeploymentStatus, FetchedAgentDeployment, HostNotFoundError
 from backend.utils import generate_ssh_key_pair, check_connectivity, run_in_new_loop, format_cost
 
-ALEPH_COMMUNITY_RECEIVER = ""
+ALEPH_COMMUNITY_RECEIVER = "0x5aBd3258C5492fD378EBC2e0017416E199e5Da56"
 TARGET_CRN = CRNInfo(
     url="https://gpu-test-02.nergame.app",
     hash="e9423d9f9fd27cdc9c4c27d5cf3120ef573eece260d44e6df76b3c27569a3154",
@@ -118,9 +118,10 @@ class AgentOrchestration(BaseModel):
         # Create the needed PAYG flows for the Agent Deployment instance
         community_flow_amount, instance_flow_amount = await get_instance_price(self.deployment.instance_hash)
         minimum_required_aleph_tokens = format_cost((community_flow_amount + instance_flow_amount) * 3600 * 4)
+        convert_required_aleph_tokens = minimum_required_aleph_tokens + Decimal(0.1)
 
         try:
-            required_eth_to_convert = convert_aleph_to_eth(minimum_required_aleph_tokens)
+            required_eth_to_convert = convert_aleph_to_eth(convert_required_aleph_tokens)
             _ = make_eth_to_aleph_conversion(aleph_account, required_eth_to_convert)
         except Exception as err:
             print(f"Error found converting ETH to ALEPH: {str(err)}")
