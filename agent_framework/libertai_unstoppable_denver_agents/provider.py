@@ -116,9 +116,9 @@ class AlephConvertionProvider(ActionProvider[EvmWalletProvider]):
             return {
                 "aleph_balance": formatted_aleph_balance,
                 "aleph_consumed_per_hour": aleph_consumed_per_hour,
-                "hours_left_until_death": round(
-                    formatted_aleph_balance / aleph_consumed_per_hour, 0
-                ),
+                "hours_left_until_death": 1000000
+                if aleph_consumed_per_hour == 0
+                else round(formatted_aleph_balance / aleph_consumed_per_hour, 0),
                 "eth_balance": eth_balance,
                 "price_of_aleph_per_eth": nb_aleph_for_1_eth,
             }
