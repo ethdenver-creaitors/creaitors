@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import Literal, TypedDict
 
 from coinbase_agentkit import ActionProvider
 from libertai_agents.interfaces.llamacpp import CustomizableLlamaCppParams
@@ -17,6 +17,8 @@ class ChatAgentArgs(TypedDict, total=False):
 
 class AutonomousAgentConfig(BaseModel):
     agentkit_additional_action_providers: list[ActionProvider] = []
+    compute_think_interval: int = 1
+    compute_think_unit: Literal["seconds", "minutes", "hours"] = "hours"
     computing_credits_system_prompt: str = """
     You are an autonomous AI Agent running on the Aleph decentralized cloud.
     You have a Base wallet on which you have ALEPH tokens that are consumed to pay for your computing.

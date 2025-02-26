@@ -88,12 +88,7 @@ class AutonomousAgent:
         self.agent = ChatAgent(**kwargs)
         self.autonomous_agent_config = autonomous_config
 
-        # Schedule the function
-        schedule.every(10).seconds.do(
-            self.run_async_task, self.manage_computing_credits
-        )
-        thread = threading.Thread(target=self.run_scheduler, daemon=True)
-        thread.start()
+        self.schedule_cloud_credits_thinking()
 
     async def manage_computing_credits(self) -> None:
         """Call the agent to make it decide if it wants to buy $ALEPH for computing or not"""
@@ -110,11 +105,33 @@ class AutonomousAgent:
             only_final_answer=False,
         ):
             print(message)
-        print("Done")
         self.done = True
 
+    def schedule_cloud_credits_thinking(self) -> None:
+        """Schedules the cloud credits reflexion task"""
+        unit = self.autonomous_agent_config.compute_think_unit
+        interval = self.autonomous_agent_config.compute_think_interval
+
+        if unit == "minutes":
+            schedule.every(interval).minutes.do(
+                self.run_async_task, self.manage_computing_credits
+            )
+        elif unit == "hours":
+            schedule.every(interval).hours.do(
+                self.run_async_task, self.manage_computing_credits
+            )
+        elif unit == "seconds":
+            schedule.every(interval).seconds.do(
+                self.run_async_task, self.manage_computing_credits
+            )
+        else:
+            raise ValueError("Invalid time unit. Use 'seconds', 'minutes', or 'hours'.")
+
+        thread = threading.Thread(target=self.run_scheduler, daemon=True)
+        thread.start()
+
     @staticmethod
-    def run_async_task(func):
+    def run_async_task(func) -> None:
         """Runs an async function inside an event loop."""
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
