@@ -26,9 +26,15 @@ classifiers = [
 ]
 dependencies = [
   "fastapi==0.115.8",
-  "pydantic==2.10.6",
+  "pydantic==1.10.21",
   "uuid==1.30",
   "paramiko==3.5.0",
+  "eciespy==0.4.3",
+  "python-dotenv==1.0.1",
+  "aleph-sdk-python==1.4.0",
+]
+optional-dependencies.all = [
+  "fastapi[standard]",
 ]
 
 [project.urls]
@@ -39,12 +45,27 @@ Source = "https://github.com/unknown/backend"
 [tool.hatch.version]
 path = "src/backend/__about__.py"
 
+[tool.hatch.build.targets.wheel]
+packages = [ "src/backend" ]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
 [tool.hatch.envs.default]
+platforms = ["linux", "macos"]
+
+[tool.hatch.envs.default.scripts]
+backend = "fastapi run src/backend/main.py {args:--help}"
+
+[tool.hatch.envs.testing]
+type = "virtual"
+system-packages = true
 dependencies = [
   "coverage[toml]>=6.5",
   "pytest",
 ]
-[tool.hatch.envs.default.scripts]
+
+[tool.hatch.envs.testing.scripts]
 test = "pytest {args:tests}"
 test-cov = "coverage run -m pytest {args:tests}"
 cov-report = [
@@ -57,7 +78,7 @@ cov = [
 ]
 
 [[tool.hatch.envs.all.matrix]]
-python = ["3.8", "3.9", "3.10", "3.11", "3.12"]
+python = ["3.10", "3.11", "3.12"]
 
 [tool.hatch.envs.types]
 dependencies = [
