@@ -35,8 +35,10 @@ class AutonomousAgent:
     ):
         load_dotenv()
 
-        private_key = os.getenv("AGENT_WALLET_PRIVATE_KEY=", None)
-        assert private_key is not None, "You must set PRIVATE_KEY environment variable"
+        private_key = os.getenv("AGENT_WALLET_PRIVATE_KEY", None)
+        assert private_key is not None, (
+            "You must set AGENT_WALLET_PRIVATE_KEY environment variable"
+        )
         assert private_key.startswith("0x"), "Private key must start with 0x hex prefix"
 
         # Create Ethereum account from private key
