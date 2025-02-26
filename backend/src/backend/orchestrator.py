@@ -151,8 +151,6 @@ class AgentOrchestration(BaseModel):
     async def notify(self):
         try:
             allocation_success = await notify_allocation(TARGET_CRN.url, self.deployment.instance_hash)
-            # print("By-passing allocation")
-            # allocation_success = True
         except Exception as err:
             raise ValueError(f"Allocation failed with that message '{str(err)}'")
 
@@ -251,9 +249,9 @@ class DeploymentOrchestrator(BaseModel):
     running_deployments: Dict[str, AgentOrchestration] = {}
 
     def new(self, deployment: FetchedAgentDeployment, aleph_account: ETHAccount, env_variables: Dict[str, str]):
-        # ssh_private_key, ssh_public_key = generate_ssh_key_pair()
-        ssh_private_key = TESTING_SSH_PRIVATE_KEY
-        ssh_public_key = TESTING_SSH_PUBLIC_KEY
+        ssh_private_key, ssh_public_key = generate_ssh_key_pair()
+        # ssh_private_key = TESTING_SSH_PRIVATE_KEY
+        # ssh_public_key = TESTING_SSH_PUBLIC_KEY
 
         orchestration = AgentOrchestration(
             aleph_account=aleph_account,
