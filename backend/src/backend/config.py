@@ -15,6 +15,7 @@ class _Config:
 
     CODE_FILES_PATH: str
     SCRIPTS_PATH: str
+    DEVELOPMENT_PUBLIC_KEY: str = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGBogG5GtRkK98C2cEvAT9StWSdEA3tktvdfj1clFfEZ"
 
     def __init__(self):
         load_dotenv()

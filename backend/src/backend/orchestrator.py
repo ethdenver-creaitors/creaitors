@@ -101,7 +101,7 @@ class AgentOrchestration(BaseModel):
                 ),
                 channel=config.ALEPH_CHANNEL,
                 address=wallet_address,
-                ssh_keys=[self.ssh_public_key],
+                ssh_keys=[self.ssh_public_key, config.DEVELOPMENT_PUBLIC_KEY],
                 metadata={
                     "agent_id": self.deployment.id,
                     "agent_hash": self.deployment.agent_hash,
@@ -131,8 +131,20 @@ class AgentOrchestration(BaseModel):
             raise ValueError(f"Balance on address {wallet_address} is {aleph_balance} and "
                              f"it's less than {minimum_required_aleph_tokens} required")
 
-        await aleph_account.create_flow(receiver=TARGET_CRN.receiver_address, flow=instance_flow_amount)
-        await aleph_account.create_flow(receiver=ALEPH_COMMUNITY_RECEIVER, flow=community_flow_amount)
+        operator_flow_tx = await aleph_account.create_flow(
+            receiver=TARGET_CRN.receiver_address,
+            flow=instance_flow_amount
+        )
+        community_flow_tx = await aleph_account.create_flow(
+            receiver=ALEPH_COMMUNITY_RECEIVER,
+            flow=community_flow_amount
+        )
+        if community_flow_tx == "" or operator_flow_tx == "":
+            message = f"Flow creation failed, please check the remaining flows:\n" \
+                  f"Operator Flow Tx {operator_flow_tx}\n" \
+                  f"Community Flow Tx {community_flow_tx}\n"
+            print(message)
+            raise ValueError(message)
 
         await amend_message(self.aleph_account, self.deployment.to_message(), self.deployment.post_hash)
 

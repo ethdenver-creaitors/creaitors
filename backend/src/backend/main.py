@@ -4,12 +4,12 @@ from decimal import Decimal
 from fastapi import FastAPI, Depends, Request
 from starlette.middleware.cors import CORSMiddleware
 
-from aleph.sdk.chains.ethereum import ETHAccount
 from aleph.sdk.client.authenticated_http import AuthenticatedAlephHttpClient
 from aleph.sdk.client.abstract import MessageFilter
 from aleph_message.models import ItemHash, Chain, MessageType
 
 from .agent import get_agent
+from .blockchain import CustomETHAccount
 from .config import config
 from .models import AgentDeployment, AgentDeploymentStatus, AgentRequest
 from .orchestrator import DeploymentOrchestrator
@@ -80,7 +80,7 @@ async def create_agent_deployment(agent_request: AgentRequest):
         }
 
     agent_proof_key = generate_predictable_key(agent_account_key)
-    aleph_account = ETHAccount(agent_proof_key, chain=Chain.BASE)
+    aleph_account = CustomETHAccount(agent_proof_key, chain=Chain.BASE)
     address = aleph_account.get_address()
 
     agent = AgentDeployment(
@@ -134,11 +134,10 @@ async def deploy_agent(
         }
 
     agent_proof_key = generate_predictable_key(agent_account_key)
-    aleph_account = ETHAccount(agent_proof_key, chain=Chain.BASE)
+    aleph_account = CustomETHAccount(agent_proof_key, chain=Chain.BASE)
     wallet_address = aleph_account.get_address()
     eth_balance = aleph_account.get_eth_balance()
     if eth_balance < MINIMUM_REQUIRED_AMOUNT:
-        # if eth_balance < 0:
         return {
             "error": True,
             "message": f"Insufficient balance, {'{0:.18f}'.format(MINIMUM_REQUIRED_AMOUNT)} ETH required "
@@ -146,35 +145,36 @@ async def deploy_agent(
         }
 
     # Only for debugging and to not consume resources for testing
-    async with AuthenticatedAlephHttpClient(
-            account=aleph_account, api_server=config.ALEPH_API_URL
-    ) as client:
-        resp = await client.get_messages(
-            message_filter=MessageFilter(
-                message_types=[MessageType.instance],
-                addresses=[wallet_address]
-            )
-        )
-        hashes = []
-        for message in resp.messages:
-            hashes.append(message.item_hash)
-
-        if len(hashes) > 0:
-            forget_message, _ = await client.forget(hashes=hashes, reason="I don't need it")
-            print(f"Messages forgotten by {forget_message.item_hash}")
+    # async with AuthenticatedAlephHttpClient(
+    #         account=aleph_account, api_server=config.ALEPH_API_URL
+    # ) as client:
+    #     resp = await client.get_messages(
+    #         message_filter=MessageFilter(
+    #             message_types=[MessageType.instance, MessageType.post],
+    #             addresses=[wallet_address]
+    #         )
+    #     )
+    #     hashes = []
+    #     for message in resp.messages:
+    #         hashes.append(message.item_hash)
+    #
+    #     if len(hashes) > 0:
+    #         forget_message, _ = await client.forget(hashes=hashes, reason="I don't need it")
+    #         print(f"Messages forgotten by {forget_message.item_hash}")
     #
     # # Clean pending flows
     # await aleph_account.delete_flow(receiver="0xA07B1214bAe0D5ccAA25449C3149c0aC83658874")
-    # # await aleph_account.delete_flow(receiver="0x5aBd3258C5492fD378EBC2e0017416E199e5Da56")
+    # await aleph_account.delete_flow(receiver="0x5aBd3258C5492fD378EBC2e0017416E199e5Da56")
+    # print("Remaining flows stopped")
 
     # Create and start the autonomous agent deployment
-    # deployment = orchestrator.get(agent_id=str(agent_id))
-    # if not deployment:
-    #     orchestrator.new(
-    #         deployment=agent,
-    #         aleph_account=aleph_account,
-    #         env_variables=agent_request.env_variables
-    #     )
+    deployment = orchestrator.get(agent_id=str(agent_id))
+    if not deployment:
+        orchestrator.new(
+            deployment=agent,
+            aleph_account=aleph_account,
+            env_variables=agent_request.env_variables
+        )
 
     return {
         "error": False,
