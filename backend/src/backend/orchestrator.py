@@ -28,10 +28,6 @@ TARGET_CRN = CRNInfo(
     receiver_address="0xA07B1214bAe0D5ccAA25449C3149c0aC83658874",
 )
 
-# ONLY FOR TESTING:
-TESTING_SSH_PRIVATE_KEY = open("src/backend/private.key", "r").read()
-TESTING_SSH_PUBLIC_KEY = open("src/backend/public.key", "r").read()
-
 
 class AgentOrchestration(BaseModel):
     aleph_account: ETHAccount

@@ -4,10 +4,10 @@ WORKDIR /app
 
 RUN pip install hatch
 
-COPY ./pyproject.toml ./
-
-RUN pip install -e .
-
 COPY . .
+
+RUN hatch env run pip install setuptools
+
+RUN hatch env run pip install "fastapi[standard]"
 
 CMD ["hatch", "run", "backend", "--host", "0.0.0.0"]
