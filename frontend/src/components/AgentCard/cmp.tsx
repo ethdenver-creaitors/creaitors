@@ -29,15 +29,15 @@ export default function AgentCard({
       className="w-48 flex flex-col items-center justify-center px-0.5 cursor-pointer"
       onClick={() => handleClick(agent)}
     >
-      <div className="relative h-48 w-48 rounded-t-xl mb-0.5">
+      <div className="relative h-48 w-48 rounded-t-xl mb-0.5 group">
         <Image
           src={agent.image}
           alt="Agent image"
-          className={`min-h-full w-full object-cover rounded-t-xl`}
+          className="min-h-full w-full object-cover rounded-xl"
           width={0}
           height={0}
         />
-        <div className="absolute -bottom-0.5 left-0 right-0 h-1/3 bg-gradient-to-t from-background to-transparent" />
+        <div className="absolute rounded-xl bottom-0 left-0 right-0 h-1/3 group-hover:h-3/5 bg-gradient-to-t from-secondary/50 group-hover:from-secondary/70 to-transparent transition-all" />
       </div>
       <div className="text-md text-left flex gap-x-4 w-full justify-between">
         <div>{agent.name}</div>

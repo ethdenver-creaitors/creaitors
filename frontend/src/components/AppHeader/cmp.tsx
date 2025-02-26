@@ -20,7 +20,9 @@ export default function AppHeader() {
           className="flex flex-col h-full justify-around cursor-pointer"
           onClick={() => navigationRouter.push("/")}
         >
-          <h1 className="text-6xl text-primary font-accent">CreAItors</h1>
+          <h1 className="text-6xl font-accent gradient-primary-light">
+            CreAItors
+          </h1>
           <h2 className="text-base">Autonomous AI Agents</h2>
         </div>
         <ConnectWalletButton />
