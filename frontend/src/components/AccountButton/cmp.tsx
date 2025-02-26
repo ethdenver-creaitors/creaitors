@@ -18,13 +18,17 @@ import {
 
 import { Bot } from "lucide-react";
 
-export default function AccountButton() {
+export default function AccountButton({
+  withName = true,
+}: {
+  withName?: boolean;
+}) {
   return (
     <Wallet>
       <ConnectWallet>
-        <ConnectWalletText>Connect Wallet</ConnectWalletText>
+        <ConnectWalletText>Connect</ConnectWalletText>
         <Avatar className="h-6 w-6" />
-        <Name />
+        {withName && <Name />}
       </ConnectWallet>
       <WalletDropdown>
         <Identity className="px-4 pt-3 pb-2">
@@ -33,7 +37,7 @@ export default function AccountButton() {
           <Address />
           <EthBalance />
         </Identity>
-        <WalletDropdownLink icon={<Bot />} href="/">
+        <WalletDropdownLink icon={<Bot />} href="/" className="bg-primary">
           My agents
         </WalletDropdownLink>
         <WalletDropdownLink

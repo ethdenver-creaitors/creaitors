@@ -24,7 +24,7 @@ export default function App({ Component, pageProps }: AppProps) {
           <WalletEventsListener />
           <div className="min-h-screen w-screen flex flex-col relative">
             <AppHeader />
-            <main>
+            <main className="mt-[var(--header-height)] md:mt-[var(--header-height-desktop)]">
               <Component {...pageProps} />
             </main>
             <AppFooter />

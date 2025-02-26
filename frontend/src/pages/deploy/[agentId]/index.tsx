@@ -1,4 +1,5 @@
 import AgentDetails from "@/components/AgentDetails";
+import PageContainer from "@/components/PageContainer";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -93,41 +94,43 @@ export default function DeployAgentPage() {
   if (!agent) return <div>Agent not found</div>;
 
   return (
-    <div className="flex gap-8 mx-8 mt-2">
-      <div className="flex max-w-[33%]">
-        <div className="flex flex-col gap-4 ">
-          <p className="font-extrabold text-5xl">Selected Agent</p>
-          <AgentDetails agent={agent} />
+    <PageContainer>
+      <div className="flex gap-8">
+        <div className="flex max-w-[33%]">
+          <div className="flex flex-col gap-4 ">
+            <p className="font-extrabold text-5xl">Selected Agent</p>
+            <AgentDetails agent={agent} />
+          </div>
+          <Separator orientation="vertical" className="w-1" />
         </div>
-        <Separator orientation="vertical" className="w-1" />
+        <div className="flex flex-col gap-4 max-w-[66%]">
+          <p className="font-extrabold text-5xl">Configure Agent Deploy</p>
+          <Form {...form}>
+            <form
+              onSubmit={handleSubmit(onSubmit)}
+              className="flex flex-col gap-4"
+            >
+              <FormField
+                control={control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormMessage />
+                    <FormControl>
+                      <Input placeholder="My AI Agent" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Used to easily identify your running agent
+                    </FormDescription>
+                  </FormItem>
+                )}
+              />
+              <Button type="submit">Submit</Button>
+            </form>
+          </Form>
+        </div>
       </div>
-      <div className="flex flex-col gap-4 max-w-[66%]">
-        <p className="font-extrabold text-5xl">Configure Agent Deploy</p>
-        <Form {...form}>
-          <form
-            onSubmit={handleSubmit(onSubmit)}
-            className="flex flex-col gap-4"
-          >
-            <FormField
-              control={control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormMessage />
-                  <FormControl>
-                    <Input placeholder="My AI Agent" {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    Used to easily identify your running agent
-                  </FormDescription>
-                </FormItem>
-              )}
-            />
-            <Button type="submit">Submit</Button>
-          </form>
-        </Form>
-      </div>
-    </div>
+    </PageContainer>
   );
 }

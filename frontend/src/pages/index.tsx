@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, CheckCircle } from "lucide-react";
 import { useRouter as useNavigationRouter } from "next/navigation";
 import { useCallback, useMemo } from "react";
+import PageContainer from "@/components/PageContainer";
 
 export default function LandingPage() {
   const navigationRouter = useNavigationRouter();
@@ -23,7 +24,7 @@ export default function LandingPage() {
   );
 
   return (
-    <main>
+    <PageContainer>
       <div className="relative min-h-screen overflow-hidden">
         {/* Background Pattern */}
         <div className="absolute inset-0 -z-10 h-full w-full bg-background">
@@ -80,6 +81,6 @@ export default function LandingPage() {
           </div>
         </div>
       </div>
-    </main>
+    </PageContainer>
   );
 }

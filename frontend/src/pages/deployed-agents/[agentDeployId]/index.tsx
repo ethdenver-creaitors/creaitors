@@ -1,5 +1,6 @@
 import AgentDetails from "@/components/AgentDetails";
 import DeployedAgentDetails from "@/components/DeployedAgentDetails";
+import PageContainer from "@/components/PageContainer";
 import { Separator } from "@/components/ui/separator";
 import useFetchAgents from "@/hooks/useFetchAgents";
 import { DeployedAgent, DeployedAgentStatus } from "@/types/agent";
@@ -59,17 +60,18 @@ export default function DeployAgentsPage() {
   if (!agent) return <div>Agent not found</div>;
 
   return (
-    <div className="flex gap-8 mx-8 mt-2">
-      <div className="flex max-w-[33%]">
-        <div className="flex flex-col gap-4 ">
-          <p className="font-extrabold text-5xl">{deployedAgent.name}</p>
-          <AgentDetails agent={agent} />
+    <PageContainer>
+      <div className="flex gap-8">
+        <div className="flex max-w-[33%]">
+          <div className="flex flex-col gap-4 ">
+            <p className="font-extrabold text-5xl">{deployedAgent.name}</p>
+            <AgentDetails agent={agent} />
+          </div>
+          <Separator orientation="vertical" className="w-1" />
         </div>
-        <Separator orientation="vertical" className="w-1" />
-      </div>
-      <div className="flex flex-col gap-4 w-full">
-        <DeployedAgentDetails deployedAgent={deployedAgent} />
-        {/* <Form {...form}>
+        <div className="flex flex-col gap-4 w-full">
+          <DeployedAgentDetails deployedAgent={deployedAgent} />
+          {/* <Form {...form}>
           <form
             onSubmit={handleSubmit(onSubmit)}
             className="flex flex-col gap-4"
@@ -93,7 +95,8 @@ export default function DeployAgentsPage() {
             <Button type="submit">Submit</Button>
           </form>
         </Form> */}
+        </div>
       </div>
-    </div>
+    </PageContainer>
   );
 }
