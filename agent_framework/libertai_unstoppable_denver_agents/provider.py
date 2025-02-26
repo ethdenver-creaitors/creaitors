@@ -2,8 +2,8 @@ import json
 import os
 from typing import Any
 
+import requests
 from coinbase_agentkit import ActionProvider, EvmWalletProvider, create_action
-from coinbase_agentkit.action_providers.erc20.constants import ERC20_ABI
 from coinbase_agentkit.network import Network
 from pydantic import BaseModel
 from web3 import Web3
@@ -49,34 +49,81 @@ class AlephConvertionProvider(ActionProvider[EvmWalletProvider]):
     )
     def get_aleph_info(
         self, wallet_provider: EvmWalletProvider, _args: dict[str, Any]
-    ) -> dict[str, Any]:
-        aleph_balance = wallet_provider.read_contract(
-            contract_address=ALEPH_ADDRESS,
-            abi=ERC20_ABI,
-            function_name="balanceOf",
-            args=[wallet_provider.get_address()],
-        )
-        eth_balance = float(Web3.from_wei(wallet_provider.get_balance(), "ether"))  # type: ignore
+    ) -> dict[str, Any] | str:
+        try:
+            superfluid_graphql_query = """
+            query accountTokenSnapshots(
+              $where: AccountTokenSnapshot_filter = {},
+            ) {
+              accountTokenSnapshots(
+              where: $where
+              ) {
+                balanceUntilUpdatedAt
+                token {
+                  id
+                  symbol
+                }
+                totalOutflowRate
+              }
+            }
+            """
 
-        formatted_aleph_balance = float(Web3.from_wei(aleph_balance, "ether"))
-        aleph_consumed_per_hour = 0.1  # TODO: real fetch
+            superfluid_graphql_variables = {
+                "where": {
+                    "account": "0xe1f7220d201c64871cefb25320a8a588393ee508",
+                    "token_": {"isListed": True},
+                },
+            }
 
-        aleph_pool_contract = w3.eth.contract(
-            address=UNISWAP_ALEPH_POOL_ADDRESS, abi=POOL_ABI
-        )
-        slot0 = aleph_pool_contract.functions.slot0().call()
-        sqrtPriceX96 = slot0[0]  # Extract sqrtPriceX96
+            response = requests.post(
+                "https://base-mainnet.subgraph.x.superfluid.dev/",
+                json={
+                    "query": superfluid_graphql_query,
+                    "variables": superfluid_graphql_variables,
+                },
+                headers={
+                    "Content-Type": "application/json",
+                },
+            )
 
-        # Calculate token price from sqrtPriceX96
-        nb_aleph_for_1_eth = (sqrtPriceX96 / (2**96)) ** 2  # Uniswap V3 formula
+            if response.status_code == 200:
+                data = response.json()
+                aleph_data = data["data"]["accountTokenSnapshots"][0]
+                aleph_balance = int(aleph_data["balanceUntilUpdatedAt"])
+                aleph_flow = int(aleph_data["totalOutflowRate"])
+            else:
+                raise ValueError(
+                    "Couldn't fetch Aleph balance and consumption from Superfluid"
+                )
 
-        return {
-            "aleph_balance": formatted_aleph_balance,
-            "aleph_consumed_per_hour": aleph_consumed_per_hour,
-            "hours_left_until_death": formatted_aleph_balance / aleph_consumed_per_hour,
-            "eth_balance": eth_balance,
-            "price_of_aleph_per_eth": nb_aleph_for_1_eth,
-        }
+            eth_balance = float(Web3.from_wei(wallet_provider.get_balance(), "ether"))  # type: ignore
+            formatted_aleph_balance = round(
+                float(Web3.from_wei(aleph_balance, "ether")), 3
+            )
+            aleph_consumed_per_hour = round(
+                float(Web3.from_wei(aleph_flow, "ether")) * 3600, 3
+            )
+
+            aleph_pool_contract = w3.eth.contract(
+                address=UNISWAP_ALEPH_POOL_ADDRESS, abi=POOL_ABI
+            )
+            slot0 = aleph_pool_contract.functions.slot0().call()
+            sqrtPriceX96 = slot0[0]  # Extract sqrtPriceX96
+
+            # Calculate token price from sqrtPriceX96
+            nb_aleph_for_1_eth = (sqrtPriceX96 / (2**96)) ** 2  # Uniswap V3 formula
+
+            return {
+                "aleph_balance": formatted_aleph_balance,
+                "aleph_consumed_per_hour": aleph_consumed_per_hour,
+                "hours_left_until_death": round(
+                    formatted_aleph_balance / aleph_consumed_per_hour, 0
+                ),
+                "eth_balance": eth_balance,
+                "price_of_aleph_per_eth": nb_aleph_for_1_eth,
+            }
+        except Exception as e:
+            return f"Error getting ALEPH information: {e}"
 
     @create_action(
         name="get_aleph_cloud_tokens",
