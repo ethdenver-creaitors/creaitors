@@ -1,20 +1,15 @@
 from decimal import Decimal
-from http import HTTPStatus
 from pathlib import Path
 
-from fastapi import HTTPException
 from typing import Optional, Any, Tuple
 
 from ipaddress import IPv6Interface
-from json import JSONDecodeError
 
 from aiohttp import (
     ClientConnectorError,
     ClientResponseError,
     ConnectionTimeoutError,
     ClientSession,
-    ClientTimeout,
-    InvalidURL,
 )
 
 from aleph.sdk.chains.ethereum import ETHAccount
@@ -23,46 +18,11 @@ from aleph.sdk.query.filters import PostFilter
 from aleph_message.models import InstanceMessage
 
 from backend.config import config
-from backend.utils import async_lru_cache, format_cost
-
-CRN_LIST_HOST_URL = "https://dchq.staging.aleph.sh"
-crn_list_link = (
-    f"{CRN_LIST_HOST_URL}/vm/bec08b08bb9f9685880f3aeb9c1533951ad56abef2a39c97f5a93683bdaa5e30/crns.json"
-)
+from backend.utils import format_cost
 
 PATH_ABOUT_EXECUTIONS_LIST = "/about/executions/list"
 PATH_INSTANCE_NOTIFY = "/control/allocation/notify"
 COMMUNITY_FLOW_PERCENTAGE = Decimal(0.2)
-
-
-@async_lru_cache
-async def fetch_crn_list() -> Optional[dict]:
-    """Call program to fetch the compute resource node list.
-
-    Returns:
-        dict: Dictionary containing the compute resource node list.
-    """
-
-    try:
-        async with ClientSession(timeout=ClientTimeout(total=60)) as session:
-            async with session.get(crn_list_link) as resp:
-                if resp.status != 200:
-                    error = "Unable to fetch crn list from program"
-                    raise Exception(error)
-                return await resp.json()
-    except InvalidURL as e:
-        error = f"Invalid URL: {crn_list_link}: {e}"
-    except TimeoutError as e:
-        error = f"Timeout while fetching: {crn_list_link}: {e}"
-    except ClientConnectorError as e:
-        error = f"Error on connection: {crn_list_link}: {e}"
-    except ClientResponseError as e:
-        error = f"Error on response: {crn_list_link}: {e}"
-    except JSONDecodeError as e:
-        error = f"Error when decoding JSON: {crn_list_link}: {e}"
-    except Exception as e:
-        error = f"Unexpected error while fetching: {crn_list_link}: {e}"
-    raise Exception(error)
 
 
 async def fetch_instance_ip(crn_url: str, item_hash: str) -> str:
@@ -194,8 +154,8 @@ async def get_instance_price(item_hash: str) -> Tuple[Decimal, Decimal]:
         if not isinstance(instance_message, InstanceMessage):
             raise ValueError(f"VM with hash {item_hash} isn't an Instance")
 
-        estimated_price = await client.get_estimated_price(content=instance_message)
-        required_tokens = estimated_price.required_tokens
+        estimated_price = await client.get_estimated_price(content=instance_message.content)
+        required_tokens = Decimal(estimated_price.required_tokens)
         required_community_tokens = format_cost(required_tokens * COMMUNITY_FLOW_PERCENTAGE)
         required_operator_tokens = format_cost(required_tokens * (1 - COMMUNITY_FLOW_PERCENTAGE))
         return required_community_tokens, required_operator_tokens

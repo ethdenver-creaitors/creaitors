@@ -6,7 +6,8 @@ from starlette.middleware.cors import CORSMiddleware
 
 from aleph.sdk.chains.ethereum import ETHAccount
 from aleph.sdk.client.authenticated_http import AuthenticatedAlephHttpClient
-from aleph_message.models import ItemHash
+from aleph.sdk.client.abstract import MessageFilter
+from aleph_message.models import ItemHash, Chain, MessageType
 
 from .agent import get_agent
 from .config import config
@@ -15,7 +16,7 @@ from .orchestrator import DeploymentOrchestrator
 from .utils import check_agent_key, generate_predictable_key
 
 # TODO: Calculate required tokens in realtime
-MINIMUM_REQUIRED_AMOUNT = Decimal(0.0001)
+MINIMUM_REQUIRED_AMOUNT = Decimal(0.001)  # At least have around $3 in ETH
 
 
 # FastAPI Application Factory
@@ -79,7 +80,7 @@ async def create_agent_deployment(agent_request: AgentRequest):
         }
 
     agent_proof_key = generate_predictable_key(agent_account_key)
-    aleph_account = ETHAccount(agent_proof_key)
+    aleph_account = ETHAccount(agent_proof_key, chain=Chain.BASE)
     address = aleph_account.get_address()
 
     agent = AgentDeployment(
@@ -133,27 +134,34 @@ async def deploy_agent(
         }
 
     agent_proof_key = generate_predictable_key(agent_account_key)
-    aleph_account = ETHAccount(agent_proof_key)
+    aleph_account = ETHAccount(agent_proof_key, chain=Chain.BASE)
     wallet_address = aleph_account.get_address()
     eth_balance = aleph_account.get_eth_balance()
-    # if eth_balance < MINIMUM_REQUIRED_AMOUNT:
-    if eth_balance < 0:
+    if eth_balance < MINIMUM_REQUIRED_AMOUNT:
+        # if eth_balance < 0:
         return {
             "error": True,
-            "message": f"Insufficient balance, {MINIMUM_REQUIRED_AMOUNT} ETH required on wallet {wallet_address}"
+            "message": f"Insufficient balance, {'{0:.18f}'.format(MINIMUM_REQUIRED_AMOUNT)} ETH required "
+                       f"on wallet {wallet_address} instead {eth_balance}"
         }
 
-    # Only for debugging and to not consume resources for testing
+    # # Only for debugging and to not consume resources for testing
     # async with AuthenticatedAlephHttpClient(
     #         account=aleph_account, api_server=config.ALEPH_API_URL
     # ) as client:
-    #     forget_message, _ = await client.forget(hashes=[
-    #         ItemHash("abbdfb4e4dd3d40bb582ca73eb2413b44bf758fd9b1107c268fa01c8ebc2b4e0"),
-    #         ItemHash("4668bd23e7e57b5f850a94d236c9fe8c2a166885c456051b3b126ce3ad708ee4"),
-    #         ItemHash("d3d483642f6a68103a08de5ce244e21ed411d738d954e6ab6ec7f6b90115569b"),
-    #         ItemHash("e56d597e387c363ea37a281fb55f7fba624ce98c486606faf0473be2f7de9e45"),
-    #     ], reason="I don't need it")
-    #     print(f"Messages forgotten by {forget_message.item_hash}")
+    #     resp = await client.get_messages(
+    #         message_filter=MessageFilter(
+    #             message_types=[MessageType.instance],
+    #             addresses=[wallet_address]
+    #         )
+    #     )
+    #     hashes = []
+    #     for message in resp.messages:
+    #         hashes.append(message.item_hash)
+    #
+    #     if len(hashes) > 0:
+    #         forget_message, _ = await client.forget(hashes=hashes, reason="I don't need it")
+    #         print(f"Messages forgotten by {forget_message.item_hash}")
 
     # Create and start the autonomous agent deployment
     deployment = orchestrator.get(agent_id=str(agent_id))

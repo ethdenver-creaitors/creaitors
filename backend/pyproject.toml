@@ -80,6 +80,14 @@ cov = [
 [[tool.hatch.envs.all.matrix]]
 python = ["3.10", "3.11", "3.12"]
 
+[tool.hatch.envs.limting]
+type = "virtual"
+system-packages = true
+dependencies = [
+  "ruff>=0.9.7",
+  "mypy>=1.15.0",
+]
+
 [tool.hatch.envs.types]
 dependencies = [
   "mypy>=1.0.0",
@@ -105,3 +113,7 @@ exclude_lines = [
   "if __name__ == .__main__.:",
   "if TYPE_CHECKING:",
 ]
+
+[tool.ruff]
+lint.select = ["C", "E", "F", "I", "W"]
+lint.ignore = ["E501"]

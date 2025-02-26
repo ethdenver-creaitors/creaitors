@@ -1,0 +1,99 @@
+import json
+import os
+from decimal import Decimal
+
+from aleph.sdk.chains.ethereum import ETHAccount
+
+from eth_account import Account
+from eth_account.account import LocalAccount
+from web3 import Web3
+
+UNISWAP_ROUTER_ADDRESS = Web3.to_checksum_address(
+    "0x2626664c2603336E57B271c5C0b26F421741e481"
+)
+WETH_ADDRESS = Web3.to_checksum_address("0x4200000000000000000000000000000000000006")
+ALEPH_ADDRESS = Web3.to_checksum_address("0xc0Fbc4967259786C743361a5885ef49380473dCF")
+UNISWAP_ALEPH_POOL_ADDRESS = Web3.to_checksum_address(
+    "0xe11C66b25F0e9a9eBEf1616B43424CC6E2168FC8"
+)
+MINIMAL_ETH_AMOUNT = Decimal(0.0001)
+
+code_dir = os.path.dirname(os.path.abspath(__file__))
+
+with open(os.path.join(code_dir, "abis/uniswap_router.json"), "r") as abi_file:
+    SWAP_ROUTER_ABI = json.load(abi_file)
+
+with open(os.path.join(code_dir, "abis/uniswap_v3_pool.json"), "r") as abi_file:
+    POOL_ABI = json.load(abi_file)
+
+w3 = Web3(Web3.HTTPProvider("https://mainnet.base.org"))
+
+
+def convert_aleph_to_eth(required_tokens: Decimal) -> Decimal:
+    aleph_pool_contract = w3.eth.contract(
+        address=UNISWAP_ALEPH_POOL_ADDRESS, abi=POOL_ABI
+    )
+    slot0 = aleph_pool_contract.functions.slot0().call()
+    sqrt_price_x96 = slot0[0]  # Extract sqrtPriceX96
+
+    # Calculate token price from sqrtPriceX96
+    nb_aleph_for_1_eth = Decimal((sqrt_price_x96 / (2**96)) ** 2)  # Uniswap V3 formula
+    required_eth_tokens = required_tokens / nb_aleph_for_1_eth
+    print(f"This {required_tokens} $ALEPH are {required_eth_tokens} $ETH tokens")
+    if required_eth_tokens < MINIMAL_ETH_AMOUNT:
+        required_eth_tokens = MINIMAL_ETH_AMOUNT
+        print(f"ETH amount is so less, converting {required_eth_tokens}")
+
+    return required_eth_tokens
+
+
+def make_eth_to_aleph_conversion(aleph_account: ETHAccount, required_eth_tokens: Decimal) -> str:
+    contract = w3.eth.contract(
+        address=UNISWAP_ROUTER_ADDRESS, abi=SWAP_ROUTER_ABI
+    )
+
+    account: LocalAccount = Account.from_key(aleph_account.export_private_key())
+    address = account.address
+
+    # Fee Tier (1%)
+    fee_tier = 10000
+
+    # Amount to swap
+    amount_in_wei = w3.to_wei(required_eth_tokens, "ether")
+    print(amount_in_wei)
+
+    # Deadline
+    deadline = (
+            w3.eth.get_block("latest")["timestamp"] + 600
+    )  # 10 minutes from now
+
+    # Transaction Data (Using exactInputSingle)
+    tx = contract.functions.exactInputSingle(
+        {
+            "tokenIn": WETH_ADDRESS,
+            "tokenOut": ALEPH_ADDRESS,
+            "fee": fee_tier,
+            "recipient": address,
+            "deadline": deadline,
+            "amountIn": amount_in_wei,
+            "amountOutMinimum": 0,  # Can use slippage calculation here
+            "sqrtPriceLimitX96": 0,  # No price limit
+        }
+    ).build_transaction(
+        {
+            "from": address,
+            "value": amount_in_wei,  # Since ETH is being swapped
+            "gas": 50000,
+            "maxFeePerGas": w3.to_wei('2', 'gwei'),
+            "maxPriorityFeePerGas": w3.to_wei('1', 'gwei'),
+            "nonce": w3.eth.get_transaction_count(address),
+            "chainId": 8453,  # Base Mainnet
+        }
+    )
+    signed_transaction = w3.eth.account.sign_transaction(tx, private_key=aleph_account.export_private_key())
+    tx_hash = w3.eth.send_raw_transaction(signed_transaction.rawTransaction)
+    receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
+    print(f"Transaction {'failed' if receipt['status'] != 1 else 'succeeded'}"
+          f" with transaction hash {receipt['transactionHash'].hex()}")
+    return str(receipt['transactionHash'].hex())
+

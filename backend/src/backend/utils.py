@@ -110,15 +110,6 @@ def sanitize_url(url: str) -> str:
     return url.strip("/")
 
 
-def async_lru_cache(async_function):
-
-    @lru_cache(maxsize=0 if "pytest" in sys.modules else 1)
-    def cached_async_function(*args, **kwargs):
-        return ensure_future(async_function(*args, **kwargs))
-
-    return cached_async_function
-
-
 async def run_in_subprocess(command: list[str], check: bool = True, stdin_input: bytes | None = None) -> bytes:
     """Run the specified command in a subprocess, returns the stdout of the process."""
     command = [str(arg) for arg in command]
@@ -151,7 +142,7 @@ async def check_connectivity(host: str, packets: int, timeout: int):
     try:
         # await run_in_subprocess(["ping", "-c", str(packets), "-W", str(timeout), host], check=True)
         # Only for MacOS
-        await run_in_subprocess(["ping6", "-c", str(packets), host], check=True)
+        await run_in_subprocess(["ping6", "-c", str(packets), "-i", str(timeout * 1000), host], check=True)
     except subprocess.CalledProcessError as err:
         raise HostNotFoundError() from err
 

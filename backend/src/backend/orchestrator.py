@@ -16,6 +16,7 @@ from pydantic.main import BaseModel
 from backend.agent import get_agent, generate_env_file_content
 from backend.aleph import notify_allocation, fetch_instance_ip, amend_message, get_code_file, get_code_hash, \
     get_instance_price
+from backend.blockchain import make_eth_to_aleph_conversion, convert_aleph_to_eth
 from backend.config import config
 from backend.models import CRNInfo, AgentDeploymentStatus, FetchedAgentDeployment, HostNotFoundError
 from backend.utils import generate_ssh_key_pair, check_connectivity, run_in_new_loop, format_cost
@@ -84,8 +85,7 @@ class AgentOrchestration(BaseModel):
                 else settings.DEFAULT_ROOTFS_SIZE
             )
 
-            # TODO: Convert ETH to ALEPH but leave enough ETH to pay flow transactions fee
-            aleph_account = client.account
+            aleph_account = self.aleph_account
             wallet_address = aleph_account.get_address()
 
             # TODO: Find the proper way to select the base CRN, by the moment get a fixed CRN
@@ -117,9 +117,18 @@ class AgentOrchestration(BaseModel):
 
         # Create the needed PAYG flows for the Agent Deployment instance
         community_flow_amount, instance_flow_amount = await get_instance_price(self.deployment.instance_hash)
-        minimum_required_aleph_tokens = format_cost((community_flow_amount + instance_flow_amount) * 4)
+        minimum_required_aleph_tokens = format_cost((community_flow_amount + instance_flow_amount) * 3600 * 4)
 
+        try:
+            required_eth_to_convert = convert_aleph_to_eth(minimum_required_aleph_tokens)
+            _ = make_eth_to_aleph_conversion(aleph_account, required_eth_to_convert)
+        except Exception as err:
+            print(f"Error found converting ETH to ALEPH: {str(err)}")
 
+        aleph_balance = aleph_account.get_token_balance()
+        if aleph_balance < minimum_required_aleph_tokens:
+            raise ValueError(f"Balance on address {wallet_address} is {aleph_balance} and "
+                             f"it's less than {minimum_required_aleph_tokens} required")
 
         await aleph_account.create_flow(receiver=TARGET_CRN.receiver_address, flow=instance_flow_amount)
         await aleph_account.create_flow(receiver=ALEPH_COMMUNITY_RECEIVER, flow=community_flow_amount)
@@ -128,9 +137,9 @@ class AgentOrchestration(BaseModel):
 
     async def notify(self):
         try:
-            # allocation_success = await notify_allocation(TARGET_CRN.url, self.deployment.instance_hash)
-            print("By-passing allocation")
-            allocation_success = True
+            allocation_success = await notify_allocation(TARGET_CRN.url, self.deployment.instance_hash)
+            # print("By-passing allocation")
+            # allocation_success = True
         except Exception as err:
             raise ValueError(f"Allocation failed with that message '{str(err)}'")
 
