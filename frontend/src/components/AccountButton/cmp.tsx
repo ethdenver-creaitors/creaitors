@@ -16,7 +16,9 @@ import {
   Name,
 } from "@coinbase/onchainkit/identity";
 
-export default function ConnectWalletButton() {
+import { Bot } from "lucide-react";
+
+export default function AccountButton() {
   return (
     <Wallet>
       <ConnectWallet>
@@ -31,6 +33,9 @@ export default function ConnectWalletButton() {
           <Address />
           <EthBalance />
         </Identity>
+        <WalletDropdownLink icon={<Bot />} href="/">
+          My agents
+        </WalletDropdownLink>
         <WalletDropdownLink
           icon="wallet"
           href="https://keys.coinbase.com"

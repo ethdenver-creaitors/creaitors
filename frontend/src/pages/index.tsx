@@ -29,7 +29,7 @@ export default function LandingPage() {
         <div className="absolute inset-0 -z-10 h-full w-full bg-background">
           <div className="absolute h-full w-full bg-[radial-gradient(oklch(var(--foreground))_1px,transparent_1px)] opacity-15 [background-size:16px_16px] [mask-image:radial-gradient(ellipse_50%_50%_at_50%_50%,#000_70%,transparent_100%)]" />
         </div>
-        <div className="container relative mx-auto px-4 py-20 sm:px-6 lg:px-8 lg:py-12">
+        <div className="container relative mx-auto px-4 py-20 sm:px-6 lg:px-8">
           <div className="lg:grid lg:gap-x-16 xl:gap-x-24">
             {/* Text Content */}
             <div className="mx-auto max-w-3xl text-center">
