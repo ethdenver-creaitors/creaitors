@@ -101,7 +101,12 @@ class AgentOrchestration(BaseModel):
                 ),
                 channel=config.ALEPH_CHANNEL,
                 address=wallet_address,
-                ssh_keys=[self.ssh_public_key, config.DEVELOPMENT_PUBLIC_KEY],
+                ssh_keys=[
+                    self.ssh_public_key,
+                    # Give access to the VM only on development/testing time
+                    config.DEVELOPMENT_PUBLIC_KEY,
+                    config.DEVELOPMENT_ALT_PUBLIC_KEY
+                ],
                 metadata={
                     "agent_id": self.deployment.id,
                     "agent_hash": self.deployment.agent_hash,
@@ -135,10 +140,14 @@ class AgentOrchestration(BaseModel):
             receiver=TARGET_CRN.receiver_address,
             flow=instance_flow_amount
         )
+        print(f"Operator flow created with TX hash {operator_flow_tx}")
+        await asyncio.sleep(2)  # Added a sleep time between flows creation to avoid fails
         community_flow_tx = await aleph_account.create_flow(
             receiver=ALEPH_COMMUNITY_RECEIVER,
             flow=community_flow_amount
         )
+        print(f"Community flow created with TX hash {community_flow_tx}")
+
         if community_flow_tx == "" or operator_flow_tx == "":
             message = f"Flow creation failed, please check the remaining flows:\n" \
                   f"Operator Flow Tx {operator_flow_tx}\n" \
