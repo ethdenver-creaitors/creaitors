@@ -144,29 +144,6 @@ async def deploy_agent(
                        f"on wallet {wallet_address} instead {eth_balance}"
         }
 
-    # Only for debugging and to not consume resources for testing
-    # async with AuthenticatedAlephHttpClient(
-    #         account=aleph_account, api_server=config.ALEPH_API_URL
-    # ) as client:
-    #     resp = await client.get_messages(
-    #         message_filter=MessageFilter(
-    #             message_types=[MessageType.instance, MessageType.post],
-    #             addresses=[wallet_address]
-    #         )
-    #     )
-    #     hashes = []
-    #     for message in resp.messages:
-    #         hashes.append(message.item_hash)
-    #
-    #     if len(hashes) > 0:
-    #         forget_message, _ = await client.forget(hashes=hashes, reason="I don't need it")
-    #         print(f"Messages forgotten by {forget_message.item_hash}")
-    #
-    # # Clean pending flows
-    # await aleph_account.delete_flow(receiver="0xA07B1214bAe0D5ccAA25449C3149c0aC83658874")
-    # await aleph_account.delete_flow(receiver="0x5aBd3258C5492fD378EBC2e0017416E199e5Da56")
-    # print("Remaining flows stopped")
-
     # Create and start the autonomous agent deployment
     deployment = orchestrator.get(agent_id=str(agent_id))
     if not deployment:
