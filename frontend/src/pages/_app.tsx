@@ -8,6 +8,7 @@ import Head from "next/head";
 import { Provider as ReduxProvider } from "react-redux";
 import ChainProvider from "@/components/ChainProvider";
 import WalletEventsListener from "@/components/WalletEventListener";
+import AppFooter from "@/components/AppFooter";
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
@@ -26,6 +27,7 @@ export default function App({ Component, pageProps }: AppProps) {
             <main>
               <Component {...pageProps} />
             </main>
+            <AppFooter />
           </div>
         </ChainProvider>
       </ReduxProvider>

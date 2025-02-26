@@ -9,7 +9,7 @@ import { Agent } from "@/types/agent";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter as useNavigationRouter } from "next/navigation";
 
-export default function Home() {
+export default function MarketplacePage() {
   const navigationRouter = useNavigationRouter();
 
   const { agents, isLoading: isLoadingAgents } = useFetchAgents();

@@ -13,7 +13,7 @@ export type ConfigureAgentDeployFormValues = {
   owner?: string;
 };
 
-export default function DeployAgentPage() {
+export default function DeployAgentsPage() {
   const router = useRouter();
   const {
     query: { agentDeployId },
