@@ -1,7 +1,7 @@
 import Image from "next/image";
 import AccountButton from "../AccountButton";
 import { useRouter as useNavigationRouter, usePathname } from "next/navigation";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState, useEffect, useRef } from "react";
 import { Menu, X } from "lucide-react";
 import useBreakpoints from "@/hooks/breakpoints/useBreakpoints";
 import { NavigationLink } from "./styles";
@@ -12,11 +12,39 @@ export default function AppHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { isDesktop } = useBreakpoints();
 
+  const mobileDropdownMenuRef = useRef<HTMLDivElement>(null);
+
   const isActive = useCallback((path: string) => pathname === path, [pathname]);
 
   const navigationLinks = useMemo(() => {
-    return [{ name: "Marketplace", path: "/marketplace/" }];
+    return [
+      { name: "Home", path: "/" },
+      { name: "Marketplace", path: "/marketplace/" },
+    ];
   }, []);
+
+  // Close the menu when switching to desktop
+  useEffect(() => {
+    if (isDesktop) setIsMenuOpen(false);
+  }, [isDesktop]);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!mobileDropdownMenuRef.current) return;
+      if (mobileDropdownMenuRef.current.contains(event.target as Node)) return;
+
+      setIsMenuOpen(false);
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isMenuOpen]);
 
   return (
     <section className="z-30 bg-background fixed w-full min-h-[var(--header-height)] flex items-center px-6 border-b-2 shadow-[0_0_10px_hsl(var(--foreground))]">
@@ -43,8 +71,8 @@ export default function AppHeader() {
               {navigationLinks.map(({ name, path }) => (
                 <NavigationLink
                   key={path}
-                  $isActive={isActive("/marketplace/")}
-                  href="/marketplace/"
+                  $isActive={isActive(path)}
+                  href={path}
                 >
                   {name}
                 </NavigationLink>
@@ -77,13 +105,16 @@ export default function AppHeader() {
             <AccountButton withName={false} />
           </div>
           {isMenuOpen && (
-            <div className="absolute top-full bg-background left-0 w-full shadow-md border-t-2">
+            <div
+              ref={mobileDropdownMenuRef} // Attach ref to menu container
+              className="absolute top-full bg-background left-0 w-full shadow-md border-t-2"
+            >
               <nav className="flex flex-col p-4 space-y-4">
                 {navigationLinks.map(({ name, path }) => (
                   <NavigationLink
                     key={path}
-                    $isActive={isActive("/marketplace/")}
-                    href="/marketplace/"
+                    $isActive={isActive(path)}
+                    href={path}
                     onClick={() => setIsMenuOpen(false)}
                   >
                     {name}
