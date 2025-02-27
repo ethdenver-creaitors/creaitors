@@ -117,6 +117,23 @@ body {
     -webkit-background-clip: text;
     color: transparent;
   }
+
+  .bottom-gradient {
+    /* absolute inset-0 -z-10 h-full w-full bg-background [background:radial-gradient(125%_125%_at_50%_10%,#f5f5f5_40%,#07B6D5_100%)] */
+
+    position: absolute;
+    inset: 0;
+    z-index: -10;
+    height: 100%;
+    width: 100%;
+
+
+    background: radial-gradient(
+      150% 150% at 50% 10%,
+      hsl(var(--background)) 40%,
+      hsl(var(--secondary)) 100%
+    );
+  }
 }
 
 @font-face {

@@ -29,23 +29,28 @@ export default function DeployedAgentDetails({ deployedAgent, updateAgentDetails
 				name: "Pending funds",
 				description: "Pending funds in agent wallet",
 			},
-			[DeployedAgentStatus.PENDING_ALLOCATION]: {
+			[DeployedAgentStatus.PENDING_SWAP]: {
 				order: 2,
+				name: "Pending Swap",
+				description: "Agent instance is swaping for computing tokens",
+			},
+			[DeployedAgentStatus.PENDING_ALLOCATION]: {
+				order: 3,
 				name: "Allocating",
 				description: "Agent instance is waiting for allocation",
 			},
 			[DeployedAgentStatus.PENDING_START]: {
-				order: 3,
+				order: 4,
 				name: "Starting",
 				description: "Agent instance is starting",
 			},
 			[DeployedAgentStatus.PENDING_DEPLOY]: {
-				order: 4,
+				order: 5,
 				name: "Deploying",
 				description: "Agent is being deployed",
 			},
 			[DeployedAgentStatus.ALIVE]: {
-				order: 5,
+				order: 6,
 				name: "Alive",
 				description: "Agent is alive",
 			},
@@ -165,6 +170,12 @@ export default function DeployedAgentDetails({ deployedAgent, updateAgentDetails
 					<>
 						<p className="font-bold text-xl">AI Agent Wallet</p>
 						<div className="flex flex-wrap items-center gap-x-8 gap-y-4">{AgentWallet}</div>
+						<Button
+							// disabled={!isAgentWalletFunded}
+							onClick={handleFinishFundWalletStep}
+						>
+							Continue
+						</Button>
 					</>
 				);
 			default:
@@ -172,6 +183,12 @@ export default function DeployedAgentDetails({ deployedAgent, updateAgentDetails
 					<>
 						<p className="font-bold text-xl">AI Agent Wallet</p>
 						<div className="flex flex-wrap items-center gap-x-8 gap-y-4">{AgentWallet}</div>
+						<Button
+							// disabled={!isAgentWalletFunded}
+							onClick={handleFinishFundWalletStep}
+						>
+							Continue
+						</Button>
 					</>
 				);
 		}
