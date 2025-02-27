@@ -142,11 +142,13 @@ async def deploy_agent(
     # Create and start the autonomous agent deployment
     deployment = orchestrator.get(agent_id=str(agent_id))
     if not deployment:
-        orchestrator.new(
+        deployment = orchestrator.new(
             deployment=agent,
             aleph_account=aleph_account,
             env_variables=agent_request.env_variables
         )
+
+    orchestrator.deploy(deployment)
 
     return {
         "error": False,

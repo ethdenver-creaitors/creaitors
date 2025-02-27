@@ -58,7 +58,6 @@ def make_eth_to_aleph_conversion(aleph_account: ETHAccount, required_eth_tokens:
 
     # Amount to swap
     amount_in_wei = w3.to_wei(required_eth_tokens, "ether")
-    print(amount_in_wei)
 
     # Fetch current base fee from the latest block
     latest_block = w3.eth.get_block('latest')

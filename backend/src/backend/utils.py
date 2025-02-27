@@ -2,12 +2,12 @@ import asyncio
 import base64
 import hashlib
 import io
+import platform
 import subprocess
-import sys
 import threading
-from asyncio import ensure_future
 from decimal import Decimal, ROUND_FLOOR
-from functools import lru_cache
+from pathlib import Path
+from typing import Tuple
 from urllib.parse import urlparse, ParseResult
 
 import aiohttp
@@ -140,11 +140,17 @@ async def check_connectivity(host: str, packets: int, timeout: int):
     """
 
     try:
-        await run_in_subprocess(["ping", "-c", str(packets), "-W", str(timeout), host], check=True)
-        # Only for MacOS
-        # await run_in_subprocess(["ping6", "-c", str(packets), "-i", str(timeout * 1000), host], check=True)
+        if not is_mac_host():
+            await run_in_subprocess(["ping", "-c", str(packets), "-W", str(timeout), host], check=True)
+        else:
+            # Only for MacOS
+            await run_in_subprocess(["ping6", "-c", str(packets), "-i", str(timeout * 1000), host], check=True)
     except subprocess.CalledProcessError as err:
         raise HostNotFoundError() from err
+
+
+def is_mac_host() -> bool:
+    return platform.system() == "Darwin"
 
 
 def run_in_new_loop(coroutine):
@@ -160,3 +166,28 @@ def run_in_new_loop(coroutine):
 
 def format_cost(v: Decimal | str, p: int = PRICE_PRECISION) -> Decimal:
     return Decimal(v).quantize(Decimal(1) / Decimal(10**p), ROUND_FLOOR)
+
+
+def create_or_recover_ssh_keys(agent_id: str) -> Tuple[str, str]:
+    # TODO: Load existing ssh keys if they exists, if not just create random ones
+    private_key_path = Path(f"{config.KEYS_PATH}/{agent_id}_private.key")
+    public_key_path = Path(f"{config.KEYS_PATH}/{agent_id}_public.key")
+    if private_key_path.exists() and public_key_path.exists():
+        ssh_private_key = private_key_path.read_text()
+        ssh_public_key = public_key_path.read_text()
+    else:
+        ssh_private_key, ssh_public_key = generate_ssh_key_pair()
+        private_key_path.write_text(ssh_private_key)
+        public_key_path.write_text(ssh_public_key)
+
+    return ssh_private_key, ssh_public_key
+
+
+def clean_ssh_keys(agent_id: str):
+    private_key_path = Path(f"{config.KEYS_PATH}/{agent_id}_private.key")
+    public_key_path = Path(f"{config.KEYS_PATH}/{agent_id}_public.key")
+    if private_key_path.exists():
+        private_key_path.unlink()
+    if public_key_path.exists():
+        public_key_path.unlink()
+

@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 
@@ -18,6 +19,8 @@ class _Config:
     DEVELOPMENT_PUBLIC_KEY: str = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGBogG5GtRkK98C2cEvAT9StWSdEA3tktvdfj1clFfEZ"
     DEVELOPMENT_ALT_PUBLIC_KEY: str = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHlGJRaIv/EzNT0eNqNB5DiGEbii28Fb2zCjuO/bMu7y"
 
+    PLATFORM_REWARD_WALLET: str = "0xA07B1214bAe0D5ccAA25449C3149c0aC83658874"
+
     def __init__(self):
         load_dotenv()
 
@@ -31,6 +34,13 @@ class _Config:
 
         self.CODE_FILES_PATH = os.getenv("CODE_FILES_PATH", "downloads")
         self.SCRIPTS_PATH = os.getenv("SCRIPTS_PATH", "src/backend/scripts")
+        self.KEYS_PATH = os.getenv("KEYS_PATH", "keys")
+
+        if not Path(self.KEYS_PATH).is_dir():
+            Path(self.KEYS_PATH).mkdir()
+
+        if not Path(self.CODE_FILES_PATH).is_dir():
+            Path(self.CODE_FILES_PATH).mkdir()
 
 
 config = _Config()

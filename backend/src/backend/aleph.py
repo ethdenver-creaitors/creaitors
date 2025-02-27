@@ -14,6 +14,7 @@ from aiohttp import (
 
 from aleph.sdk.chains.ethereum import ETHAccount
 from aleph.sdk.client.authenticated_http import AuthenticatedAlephHttpClient, AlephHttpClient
+from aleph.sdk.evm_utils import FlowUpdate
 from aleph.sdk.query.filters import PostFilter
 from aleph_message.models import InstanceMessage
 
@@ -159,4 +160,17 @@ async def get_instance_price(item_hash: str) -> Tuple[Decimal, Decimal]:
         required_community_tokens = format_cost(required_tokens * COMMUNITY_FLOW_PERCENTAGE)
         required_operator_tokens = format_cost(required_tokens * (1 - COMMUNITY_FLOW_PERCENTAGE))
         return required_community_tokens, required_operator_tokens
+
+
+async def create_instance_flow(aleph_account: ETHAccount, receiver_address: str, instance_flow_amount: Decimal):
+    existing_flow = await aleph_account.get_flow(receiver_address)
+    existing_flow_rate = Decimal(existing_flow["flowRate"] or 0)
+    if 0 < existing_flow_rate < instance_flow_amount:
+        flow_to_update = instance_flow_amount - existing_flow_rate
+        operator_flow_tx = await aleph_account.manage_flow(
+            receiver=receiver_address,
+            flow=flow_to_update,
+            update_type=FlowUpdate.INCREASE,
+        )
+        print(f"Flow created to {receiver_address} with TX hash {operator_flow_tx}")
 

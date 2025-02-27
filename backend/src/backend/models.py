@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 class AgentDeploymentStatus(Enum):
     PENDING_FUND = "PENDING_FUND"
+    PENDING_SWAP = "PENDING_SWAP"
     PENDING_ALLOCATION = "PENDING_ALLOCATION"
     PENDING_START = "PENDING_START"
     PENDING_DEPLOY = "PENDING_DEPLOY"

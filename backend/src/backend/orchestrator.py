@@ -16,11 +16,12 @@ from pydantic.main import BaseModel
 
 from backend.agent import get_agent, generate_env_file_content
 from backend.aleph import notify_allocation, fetch_instance_ip, amend_message, get_code_file, get_code_hash, \
-    get_instance_price
+    get_instance_price, create_instance_flow
 from backend.blockchain import make_eth_to_aleph_conversion, convert_aleph_to_eth
 from backend.config import config
 from backend.models import CRNInfo, AgentDeploymentStatus, FetchedAgentDeployment, HostNotFoundError
-from backend.utils import generate_ssh_key_pair, check_connectivity, run_in_new_loop, format_cost
+from backend.utils import generate_ssh_key_pair, check_connectivity, run_in_new_loop, format_cost, \
+    create_or_recover_ssh_keys, clean_ssh_keys
 
 ALEPH_COMMUNITY_RECEIVER = "0x5aBd3258C5492fD378EBC2e0017416E199e5Da56"
 TARGET_CRN = CRNInfo(
@@ -47,26 +48,28 @@ class AgentOrchestration(BaseModel):
         await self._continue_actions()
 
     async def _continue_actions(self):
+        print(f"Agent is in {self.deployment.status} status")
         if not self.deployment.instance_ip:
             self.deployment.instance_ip = await fetch_instance_ip(TARGET_CRN.url, self.deployment.instance_hash)
 
         if self.deployment.status == AgentDeploymentStatus.PENDING_FUND:
             await self.create_instance()
-            print(f"Agent is in {self.deployment.status} status")
+            await self._continue_actions()
+        if self.deployment.status == AgentDeploymentStatus.PENDING_SWAP:
+            await self.create_flows()
             await self._continue_actions()
         elif self.deployment.status == AgentDeploymentStatus.PENDING_ALLOCATION:
             await self.notify()
-            print(f"Agent is in {self.deployment.status} status")
             await self._continue_actions()
         elif self.deployment.status == AgentDeploymentStatus.PENDING_START:
             await self.check_connectivity()
-            print(f"Agent is in {self.deployment.status} status")
             await self._continue_actions()
         elif self.deployment.status == AgentDeploymentStatus.PENDING_DEPLOY:
             await self.deploy_code()
             await self._continue_actions()
         elif self.deployment.status == AgentDeploymentStatus.ALIVE:
             print(f"Agent {self.deployment.id} is ALIVE!")
+            await self.cleanup()
 
     async def create_instance(self):
         async with AuthenticatedAlephHttpClient(
@@ -82,10 +85,7 @@ class AgentOrchestration(BaseModel):
                 else settings.DEFAULT_ROOTFS_SIZE
             )
 
-            aleph_account = self.aleph_account
-            wallet_address = aleph_account.get_address()
-
-            # TODO: Find the proper way to select the base CRN, by the moment get a fixed CRN
+            # TODO: Find the proper way to select the base CRN, at the moment get a fixed CRN
             instance_message, _status = await client.create_instance(
                 rootfs=rootfs,
                 rootfs_size=rootfs_size,
@@ -97,7 +97,7 @@ class AgentOrchestration(BaseModel):
                     )
                 ),
                 channel=config.ALEPH_CHANNEL,
-                address=wallet_address,
+                address=self.aleph_account.get_address(),
                 ssh_keys=[
                     self.ssh_public_key,
                     # Give access to the VM only on development/testing time
@@ -115,46 +115,38 @@ class AgentOrchestration(BaseModel):
             )
 
         self.deployment.instance_hash = instance_message.item_hash
+        self.deployment.status = AgentDeploymentStatus.PENDING_SWAP
+        self.deployment.last_update = int(time.time())
+        await amend_message(self.aleph_account, self.deployment.to_message(), self.deployment.post_hash)
+
+    async def create_flows(self):
+        aleph_account = self.aleph_account
+        wallet_address = aleph_account.get_address()
 
         # Create the needed PAYG flows for the Agent Deployment instance
         community_flow_amount, instance_flow_amount = await get_instance_price(self.deployment.instance_hash)
         minimum_required_aleph_tokens = format_cost((community_flow_amount + instance_flow_amount) * 3600 * 4)
+        # Add a token offset to ensure converted tokens covers the needs
         convert_required_aleph_tokens = minimum_required_aleph_tokens + Decimal(0.1)
 
-        try:
-            required_eth_to_convert = convert_aleph_to_eth(convert_required_aleph_tokens)
-            _ = make_eth_to_aleph_conversion(aleph_account, required_eth_to_convert)
-        except Exception as err:
-            print(f"Error found converting ETH to ALEPH: {str(err)}")
+        if aleph_account.get_token_balance() < minimum_required_aleph_tokens:
+            try:
+                required_eth_to_convert = convert_aleph_to_eth(convert_required_aleph_tokens)
+                _ = make_eth_to_aleph_conversion(aleph_account, required_eth_to_convert)
+            except Exception as err:
+                print(f"Error found converting ETH to ALEPH: {str(err)}")
 
-        aleph_balance = aleph_account.get_token_balance()
-        if aleph_balance < minimum_required_aleph_tokens:
-            raise ValueError(f"Balance on address {wallet_address} is {aleph_balance} and "
-                             f"it's less than {minimum_required_aleph_tokens} required")
+            aleph_balance = aleph_account.get_token_balance()
+            if aleph_balance < minimum_required_aleph_tokens:
+                raise ValueError(f"Balance on address {wallet_address} is {aleph_balance} and "
+                                 f"it's less than {minimum_required_aleph_tokens} required")
 
-        operator_flow_tx = await aleph_account.create_flow(
-            receiver=TARGET_CRN.receiver_address,
-            flow=instance_flow_amount
-        )
-        print(f"Operator flow created with TX hash {operator_flow_tx}")
+        await create_instance_flow(aleph_account, TARGET_CRN.receiver_address, instance_flow_amount)
         await asyncio.sleep(10)  # Added a sleep time between flows creation to avoid fails
-        community_flow_tx = await aleph_account.create_flow(
-            receiver=ALEPH_COMMUNITY_RECEIVER,
-            flow=community_flow_amount
-        )
-        print(f"Community flow created with TX hash {community_flow_tx}")
-
-        if community_flow_tx == "" or operator_flow_tx == "":
-            message = f"Flow creation failed, please check the remaining flows:\n" \
-                  f"Operator Flow Tx {operator_flow_tx}\n" \
-                  f"Community Flow Tx {community_flow_tx}\n"
-            print(message)
-            raise ValueError(message)
+        await create_instance_flow(aleph_account, ALEPH_COMMUNITY_RECEIVER, community_flow_amount)
 
         self.deployment.status = AgentDeploymentStatus.PENDING_ALLOCATION
-        self.deployment.instance_hash = instance_message.item_hash
         self.deployment.last_update = int(time.time())
-
         await amend_message(self.aleph_account, self.deployment.to_message(), self.deployment.post_hash)
 
     async def notify(self):
@@ -197,7 +189,24 @@ class AgentOrchestration(BaseModel):
         self.deployment.last_update = int(time.time())
         await amend_message(self.aleph_account, self.deployment.to_message(), self.deployment.post_hash)
 
+        # Await 5 seconds before trying the next step to connect by SSH
+        await asyncio.sleep(5)
+
     async def deploy_code(self):
+        attempts = 5
+
+        for attempt in range(attempts):
+            try:
+                await self._ssh_deployment()
+                break
+            except Exception as error:
+                if attempt < (attempts - 1):
+                    print(f"Agent {self.deployment.id} code deployment failed: {str(error)}")
+                    continue
+                else:
+                    raise
+
+    async def _ssh_deployment(self):
         # Create a Paramiko SSH client
         ssh_client = paramiko.SSHClient()
         ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -214,56 +223,62 @@ class AgentOrchestration(BaseModel):
         code_filename = await get_code_file(code_hash)
         content = open(code_filename, mode="rb").read()
 
-        # Connect to the server
-        ssh_client.connect(hostname=self.deployment.instance_ip, username="root", pkey=rsa_key)
+        try:
+            # Connect to the server
+            ssh_client.connect(hostname=self.deployment.instance_ip, username="root", pkey=rsa_key)
 
-        # Send the zip with the code
-        sftp = ssh_client.open_sftp()
-        remote_path = "/tmp/libertai-agent.zip"
-        sftp.putfo(io.BytesIO(content), remote_path)
-        sftp.close()
+            # Send the zip with the code
+            sftp = ssh_client.open_sftp()
+            remote_path = "/tmp/libertai-agent.zip"
+            sftp.putfo(io.BytesIO(content), remote_path)
+            sftp.close()
 
-        # Send the env variable file
-        sftp = ssh_client.open_sftp()
-        wallet_private_key = self.aleph_account.export_private_key()
-        content = generate_env_file_content(wallet_private_key, None)
-        remote_path = "/tmp/.env"
-        sftp.putfo(io.BytesIO(content), remote_path)
-        sftp.close()
+            # Send the env variable file
+            sftp = ssh_client.open_sftp()
+            wallet_private_key = self.aleph_account.export_private_key()
+            content = generate_env_file_content(wallet_private_key, None)
+            remote_path = "/tmp/.env"
+            sftp.putfo(io.BytesIO(content), remote_path)
+            sftp.close()
 
-        # Send the deployment script
-        script_path = f"{config.SCRIPTS_PATH}/deploy.sh"
-        content = open(script_path, mode="rb").read()
-        sftp = ssh_client.open_sftp()
-        remote_path = "/tmp/deploy-agent.sh"
-        sftp.putfo(io.BytesIO(content), remote_path)
-        sftp.close()
+            # Send the deployment script
+            script_path = f"{config.SCRIPTS_PATH}/deploy.sh"
+            content = open(script_path, mode="rb").read()
+            sftp = ssh_client.open_sftp()
+            remote_path = "/tmp/deploy-agent.sh"
+            sftp.putfo(io.BytesIO(content), remote_path)
+            sftp.close()
 
-        # Execute the command
-        # TODO: Detect the usage type, by default use "fastapi"
-        usage_type = "fastapi"
-        _stdin, _stdout, stderr = ssh_client.exec_command(
-            f"chmod +x {remote_path} && {remote_path} 3.12 poetry {usage_type}"
-        )
+            # Execute the command
+            # TODO: Detect the usage type, by default use "fastapi"
+            usage_type = "fastapi"
+            _stdin, _stdout, stderr = ssh_client.exec_command(
+                f"chmod +x {remote_path} && {remote_path} 3.12 poetry {usage_type}"
+            )
 
-        # Waiting for the command to complete to get error logs
-        stderr.channel.recv_exit_status()
-
-        # Close the connection
-        ssh_client.close()
+            # Waiting for the command to complete to get error logs
+            stderr.channel.recv_exit_status()
+        except Exception as error:
+            raise ValueError(str(error))
+        finally:
+            # Close the connection
+            ssh_client.close()
 
         self.deployment.status = AgentDeploymentStatus.ALIVE
         self.deployment.last_update = int(time.time())
         await amend_message(self.aleph_account, self.deployment.to_message(), self.deployment.post_hash)
+
+    async def cleanup(self):
+        print(f"Cleaning agent {self.deployment.id} remaining data")
+        clean_ssh_keys(self.deployment.id)
+        print(f"Cleaned agent {self.deployment.id} data")
 
 
 class DeploymentOrchestrator(BaseModel):
     running_deployments: Dict[str, AgentOrchestration] = {}
 
     def new(self, deployment: FetchedAgentDeployment, aleph_account: ETHAccount, env_variables: Dict[str, str]):
-        ssh_private_key, ssh_public_key = generate_ssh_key_pair()
-        # ssh_private_key = TESTING_SSH_PRIVATE_KEY
-        # ssh_public_key = TESTING_SSH_PUBLIC_KEY
+        ssh_private_key, ssh_public_key = create_or_recover_ssh_keys(deployment.id)
 
         orchestration = AgentOrchestration(
             aleph_account=aleph_account,
@@ -275,16 +290,15 @@ class DeploymentOrchestrator(BaseModel):
 
         self.running_deployments[deployment.id] = orchestration
 
-        run_in_new_loop(orchestration.deploy())
-
-    def get(self, agent_id: str) -> Optional[FetchedAgentDeployment]:
+    def get(self, agent_id: str) -> Optional[AgentOrchestration]:
         agent_deployment = self.running_deployments.get(agent_id) or None
         if not agent_deployment:
             return None
 
-        return agent_deployment.deployment
+        return agent_deployment
 
+    def deploy(self, agent_deployment: AgentOrchestration):
+        if not self.running_deployments.get(agent_deployment.deployment.id):
+            self.running_deployments[agent_deployment.deployment.id] = agent_deployment
 
-
-
-
+        run_in_new_loop(agent_deployment.deploy())

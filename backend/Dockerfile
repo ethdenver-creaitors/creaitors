@@ -3,6 +3,7 @@ FROM python:3.12
 WORKDIR /app
 
 RUN mkdir downloads
+RUN mkdir keys
 
 RUN apt-get update && apt-get install iputils-ping -y
 
