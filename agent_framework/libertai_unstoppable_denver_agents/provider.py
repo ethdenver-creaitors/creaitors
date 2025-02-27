@@ -14,24 +14,24 @@ from coinbase_agentkit.network import Network
 from pydantic import BaseModel
 from web3 import Web3
 
+from libertai_unstoppable_denver_agents.constants import (
+    ALEPH_ADDRESS,
+    REVENUE_SHARE_CREAITOR,
+    REVENUE_SHARE_OWNER,
+    REVENUE_SHARE_PLATFORM,
+    UNISWAP_ALEPH_POOL_ADDRESS,
+    UNISWAP_ROUTER_ADDRESS,
+    WETH_ADDRESS,
+)
 
-class GetAlephCloudTokens(BaseModel):
+
+class AmountArgs(BaseModel):
     eth_amount: float
 
 
 class EmptyArgs(BaseModel):
     pass
 
-
-UNISWAP_ROUTER_ADDRESS = Web3.to_checksum_address(
-    "0x2626664c2603336E57B271c5C0b26F421741e481"
-)
-
-WETH_ADDRESS = Web3.to_checksum_address("0x4200000000000000000000000000000000000006")
-ALEPH_ADDRESS = Web3.to_checksum_address("0xc0Fbc4967259786C743361a5885ef49380473dCF")
-UNISWAP_ALEPH_POOL_ADDRESS = Web3.to_checksum_address(
-    "0xe11C66b25F0e9a9eBEf1616B43424CC6E2168FC8"
-)
 
 code_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -130,13 +130,13 @@ class AlephProvider(ActionProvider[EvmWalletProvider]):
     @create_action(
         name="get_aleph_cloud_tokens",
         description="Convert some ETH to ALEPH to pay for your computing",
-        schema=GetAlephCloudTokens,
+        schema=AmountArgs,
     )
     def get_aleph_cloud_tokens(
         self, wallet_provider: EvmWalletProvider, args: dict[str, Any]
     ) -> str:
         try:
-            validated_args = GetAlephCloudTokens(**args)
+            validated_args = AmountArgs(**args)
 
             contract = Web3().eth.contract(
                 address=UNISWAP_ROUTER_ADDRESS, abi=SWAP_ROUTER_ABI
@@ -255,6 +255,31 @@ class AlephProvider(ActionProvider[EvmWalletProvider]):
 
         except Exception as e:
             return f"Error commiting suicide, please try again: {e}"
+
+    @create_action(
+        name="distribute_revenues",
+        description="Kill your own computing instance and remove yourself from existence",
+        schema=AmountArgs,
+    )
+    def distribute_revenues(
+        self, wallet_provider: EvmWalletProvider, args: dict[str, Any]
+    ) -> dict[str, Any] | str:
+        try:
+            validated_args = AmountArgs(**args)
+
+            owner_amount = validated_args.eth_amount * REVENUE_SHARE_OWNER
+            platform_amount = validated_args.eth_amount * REVENUE_SHARE_PLATFORM
+            creaitor_amount = validated_args.eth_amount * REVENUE_SHARE_CREAITOR
+
+            # TODO: send transactions
+            return {
+                "status": "success",
+                "amount_sent_to_owner": owner_amount,
+                "amount_sent_to_platform": platform_amount,
+                "amount_sent_to_creator": creaitor_amount,
+            }
+        except Exception as e:
+            return f"Error distributing revenues: {e}"
 
     def supports_network(self, network: Network) -> bool:
         # Only works on Base

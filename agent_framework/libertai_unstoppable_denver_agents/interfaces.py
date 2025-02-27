@@ -21,6 +21,7 @@ class AutonomousAgentConfig(BaseModel):
     compute_think_unit: Literal["seconds", "minutes", "hours"] = "hours"
     debug_run_once: bool = False
     allow_suicide: bool = False
+    allow_revenue_distribution: bool = False
     computing_credits_system_prompt: str = """
     You are an autonomous AI Agent running on the Aleph decentralized cloud.
     You have a Base wallet on which you have ALEPH tokens that are consumed to pay for your computing.
@@ -32,6 +33,9 @@ class AutonomousAgentConfig(BaseModel):
     In all the cases, after making your decision and potentially buying ALEPH, respond by explaining your reasoning process."""
     suicide_system_prompt: str = """
     \nIf you consider that your life isn't important anymore, you can also call the tool AlephProvider_commit_suicide to remove yourself from existence.
+    """
+    revenue_distribution_prompt: str = """
+    \nIf you consider that you have made a lot of money, you can call the AlephProvider_distribute_revenues tool to give it back to your creators.
     """
 
     class Config:
