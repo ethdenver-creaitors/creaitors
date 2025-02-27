@@ -11,8 +11,7 @@ import useFetchAgents from "@/hooks/useFetchAgents";
 import { Agent } from "@/types/agent";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-
-const categories = ["All", "Finance", "Health", "Marketing", "Gaming"];
+import { agentCategories } from "@/utils/constants";
 
 export default function MarketplacePage() {
 	const navigationRouter = useNavigationRouter();
@@ -44,6 +43,8 @@ export default function MarketplacePage() {
 		},
 		[navigationRouter],
 	);
+
+	const allAgentCategories = useMemo(() => ["All", ...agentCategories], []);
 
 	const filteredAgents = useMemo(() => {
 		return agents.filter((agent) => {
@@ -79,7 +80,7 @@ export default function MarketplacePage() {
 				</div>
 
 				<div className="flex flex-wrap items-center justify-center gap-2 overflow-x-auto">
-					{categories.map((category) => (
+					{allAgentCategories.map((category) => (
 						<Badge
 							key={category}
 							variant={selectedCategory === category ? "default" : "outline"}
@@ -93,9 +94,9 @@ export default function MarketplacePage() {
 			</div>
 
 			{/* Agents Grid */}
-			<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+			<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-24 mb-12">
 				{isLoadingAgents ? (
-					Array.from({ length: 8 }).map((_, index) => <AgentCard key={index} loading={true} agent={undefined} />)
+					Array.from({ length: 10 }).map((_, index) => <AgentCard key={index} loading={true} />)
 				) : filteredAgents.length > 0 ? (
 					filteredAgents.map((agent) => (
 						<AgentCard key={agent.id} agent={agent} onClick={handleAgentCardClick} loading={false} />

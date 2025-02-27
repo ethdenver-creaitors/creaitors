@@ -38,6 +38,7 @@ export default function useFetchAgents(): UseFetchAgentsReturn {
 							name: content.name,
 							description: content.description,
 							source_code_hash: content.source_code_hash,
+							category: content.category,
 						} as Agent;
 					}),
 				);
