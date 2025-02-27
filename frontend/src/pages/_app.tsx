@@ -8,6 +8,7 @@ import Head from "next/head";
 import { Provider as ReduxProvider } from "react-redux";
 import ChainProvider from "@/components/ChainProvider";
 import WalletEventsListener from "@/components/WalletEventListener";
+import AppFooter from "@/components/AppFooter";
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
@@ -23,9 +24,10 @@ export default function App({ Component, pageProps }: AppProps) {
           <WalletEventsListener />
           <div className="min-h-screen w-screen flex flex-col relative">
             <AppHeader />
-            <main>
+            <main className="min-h-screen pt-[var(--header-height)] md:pt-[var(--header-height-desktop)]">
               <Component {...pageProps} />
             </main>
+            <AppFooter />
           </div>
         </ChainProvider>
       </ReduxProvider>

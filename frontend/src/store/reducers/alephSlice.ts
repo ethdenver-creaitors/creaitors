@@ -4,7 +4,7 @@ import {
   AlephHttpClient,
   AuthenticatedAlephHttpClient,
 } from "@aleph-sdk/client";
-import { apiServer } from "@/utils/constants";
+import { alephApiServer } from "@/utils/constants";
 
 interface AlephState {
   alephAccount?: Account;
@@ -24,7 +24,7 @@ const alephSlice = createSlice({
       state.alephAccount = action.payload;
       state.alephClient = new AuthenticatedAlephHttpClient(
         action.payload,
-        apiServer
+        alephApiServer
       );
     },
     disconnect(state) {
