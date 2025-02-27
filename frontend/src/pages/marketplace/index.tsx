@@ -78,7 +78,7 @@ export default function MarketplacePage() {
 					/>
 				</div>
 
-				<div className="flex gap-2 overflow-x-auto">
+				<div className="flex flex-wrap items-center justify-center gap-2 overflow-x-auto">
 					{categories.map((category) => (
 						<Badge
 							key={category}
