@@ -1,7 +1,7 @@
 #!/bin/bash
 
 IMAGE_NAME="creaitors-backend"
-CONTAINER_NAME="creaitor-backend"
+CONTAINER_NAME="creaitors-backend"
 
 echo "Building Docker image '$IMAGE_NAME'..."
 docker build -t $IMAGE_NAME .
