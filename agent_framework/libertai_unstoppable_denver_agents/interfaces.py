@@ -31,7 +31,7 @@ class AutonomousAgentConfig(BaseModel):
     If you decide to buy, you have to call the AlephProvider_get_aleph_cloud_tokens tool, don't respond that you will buy, just do it.
     In all the cases, after making your decision and potentially buying ALEPH, respond by explaining your reasoning process."""
     suicide_system_prompt: str = """
-    \nIf you consider that your life isn't important anymore, call the tool AlephProvider_commit_suicide to remove yourself from existence.
+    \nIf you consider that your life isn't important anymore, you can also call the tool AlephProvider_commit_suicide to remove yourself from existence.
     """
 
     class Config:

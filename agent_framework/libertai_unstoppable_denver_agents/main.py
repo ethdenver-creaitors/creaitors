@@ -1,5 +1,7 @@
 import asyncio
+import logging
 import os
+from logging import Logger
 
 from coinbase_agentkit import (
     AgentKit,
@@ -13,7 +15,11 @@ from coinbase_agentkit_langchain import get_langchain_tools
 from dotenv import load_dotenv
 from eth_account import Account
 from libertai_agents.agents import ChatAgent
-from libertai_agents.interfaces.messages import Message
+from libertai_agents.interfaces.messages import (
+    Message,
+    ToolCallMessage,
+    ToolResponseMessage,
+)
 from libertai_agents.interfaces.tools import Tool
 from typing_extensions import Unpack
 
@@ -26,6 +32,7 @@ class AutonomousAgent:
     agent: ChatAgent
     autonomous_agent_config: AutonomousAgentConfig
     __computing_think_done: bool = False
+    logger: Logger
 
     def __init__(
         self, autonomous_config: AutonomousAgentConfig, **kwargs: Unpack[ChatAgentArgs]
@@ -84,6 +91,19 @@ class AutonomousAgent:
                 ]
             )
 
+        # Logging setup
+        logger = logging.getLogger("survival-reflexion")
+        logger.setLevel(logging.INFO)
+        if not logger.handlers:
+            handler = logging.StreamHandler()
+            handler.setFormatter(
+                logging.Formatter(
+                    "%(asctime)s - Survival reflexion - %(message)s",
+                    "%Y-%m-%d %H:%M:%S",
+                )
+            )
+            logger.addHandler(handler)
+
         self.agent = ChatAgent(**kwargs)
         self.autonomous_agent_config = autonomous_config
 
@@ -100,13 +120,13 @@ class AutonomousAgent:
             unit_multiplier = 3600
 
         while True:
-            await self.manage_computing_credits()
+            await self.survival_reflexion()
             await asyncio.sleep(
                 self.autonomous_agent_config.compute_think_interval * unit_multiplier
             )
 
-    async def manage_computing_credits(self) -> None:
-        """Call the agent to make it decide if it wants to buy $ALEPH for computing or not"""
+    async def survival_reflexion(self) -> None:
+        """Call the agent to make it decide if it wants to buy $ALEPH for computing to survive or not"""
         if (
             self.autonomous_agent_config.debug_run_once
             and self.__computing_think_done is True
@@ -130,5 +150,13 @@ class AutonomousAgent:
             system_prompt=prompt,
             only_final_answer=False,
         ):
-            print(message)
+            if isinstance(message, ToolCallMessage):
+                for tool_call in message.tool_calls:
+                    self.logger.info(
+                        f"Tool {tool_call.function.name} called with arguments {tool_call.function.arguments}"
+                    )
+            elif isinstance(message, ToolResponseMessage):
+                self.logger.info(f"Tool response: {message.content}")
+            else:
+                self.logger.info(f"Agent response: {message.content}")
         self.__computing_think_done = True
