@@ -8,6 +8,7 @@ import useFetchAgents from "@/hooks/useFetchAgents";
 import { Agent } from "@/types/agent";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter as useNavigationRouter } from "next/navigation";
+import { Plus } from "lucide-react";
 
 export default function MarketplacePage() {
   const navigationRouter = useNavigationRouter();
@@ -76,6 +77,16 @@ export default function MarketplacePage() {
 
   return (
     <PageContainer>
+      <div className="fixed bottom-6 right-6">
+        <Button
+          size="lg"
+          className="rounded-full px-4 py-6 font-extrabold"
+          onClick={handleUploadAgent}
+        >
+          <Plus size={20} />
+          Upload AI Agent
+        </Button>
+      </div>
       <div className="flex flex-wrap justify-center items-start gap-12">
         {isLoadingAgents
           ? Array.from({ length: 10 }).map((_, index) => (
@@ -89,9 +100,6 @@ export default function MarketplacePage() {
                 onClick={handleAgentCardClick}
               />
             ))}
-      </div>
-      <div className="flex justify-center mt-10">
-        <Button onClick={handleUploadAgent}>Upload AI Agent</Button>
       </div>
       {isMounted && (
         <SidePanel
