@@ -1,5 +1,6 @@
 import asyncio
 import io
+import time
 
 import paramiko
 from decimal import Decimal
@@ -113,8 +114,7 @@ class AgentOrchestration(BaseModel):
                 sync=True,
             )
 
-            self.deployment.status = AgentDeploymentStatus.PENDING_ALLOCATION
-            self.deployment.instance_hash = instance_message.item_hash
+        self.deployment.instance_hash = instance_message.item_hash
 
         # Create the needed PAYG flows for the Agent Deployment instance
         community_flow_amount, instance_flow_amount = await get_instance_price(self.deployment.instance_hash)
@@ -151,6 +151,10 @@ class AgentOrchestration(BaseModel):
             print(message)
             raise ValueError(message)
 
+        self.deployment.status = AgentDeploymentStatus.PENDING_ALLOCATION
+        self.deployment.instance_hash = instance_message.item_hash
+        self.deployment.last_update = int(time.time())
+
         await amend_message(self.aleph_account, self.deployment.to_message(), self.deployment.post_hash)
 
     async def notify(self):
@@ -163,6 +167,7 @@ class AgentOrchestration(BaseModel):
             raise ValueError("Allocation failed by some reason")
 
         self.deployment.status = AgentDeploymentStatus.PENDING_START
+        self.deployment.last_update = int(time.time())
         await amend_message(self.aleph_account, self.deployment.to_message(), self.deployment.post_hash)
 
         instance_ip = await fetch_instance_ip(TARGET_CRN.url, self.deployment.instance_hash)
@@ -189,6 +194,7 @@ class AgentOrchestration(BaseModel):
                     raise
 
         self.deployment.status = AgentDeploymentStatus.PENDING_DEPLOY
+        self.deployment.last_update = int(time.time())
         await amend_message(self.aleph_account, self.deployment.to_message(), self.deployment.post_hash)
 
     async def deploy_code(self):
@@ -247,6 +253,7 @@ class AgentOrchestration(BaseModel):
         ssh_client.close()
 
         self.deployment.status = AgentDeploymentStatus.ALIVE
+        self.deployment.last_update = int(time.time())
         await amend_message(self.aleph_account, self.deployment.to_message(), self.deployment.post_hash)
 
 

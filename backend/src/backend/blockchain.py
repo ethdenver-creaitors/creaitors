@@ -85,7 +85,7 @@ def make_eth_to_aleph_conversion(aleph_account: ETHAccount, required_eth_tokens:
         {
             "from": address,
             "value": amount_in_wei,  # Since ETH is being swapped
-            "gas": 300000,
+            "gas": 1000000,
             'maxFeePerGas': max_fee,
             'maxPriorityFeePerGas': priority_fee,
             "nonce": w3.eth.get_transaction_count(address),
@@ -100,7 +100,7 @@ def make_eth_to_aleph_conversion(aleph_account: ETHAccount, required_eth_tokens:
         print(f"Error in TX simulation: {e}")
         raise ValueError(print(f"Error in TX simulation: {e}"))
 
-    signed_transaction = w3.eth.account.sign_transaction(tx, private_key=aleph_account.export_private_key())
+    signed_transaction = account.sign_transaction(tx)
     tx_hash = w3.eth.send_raw_transaction(signed_transaction.rawTransaction)
     receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
     print(f"Transaction {'failed' if receipt['status'] != 1 else 'succeeded'}"
