@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import logging
 import os
 from logging import Logger
@@ -32,7 +33,8 @@ class AutonomousAgent:
     agent: ChatAgent
     autonomous_agent_config: AutonomousAgentConfig
     __computing_think_done: bool = False
-    logger: Logger
+    __logger: Logger
+    __logs_storage: dict[str, str]
 
     def __init__(
         self, autonomous_config: AutonomousAgentConfig, **kwargs: Unpack[ChatAgentArgs]
@@ -92,9 +94,9 @@ class AutonomousAgent:
             )
 
         # Logging setup
-        logger = logging.getLogger("survival-reflexion")
-        logger.setLevel(logging.INFO)
-        if not logger.handlers:
+        self.__logger = logging.getLogger("survival-reflexion")
+        self.__logger.setLevel(logging.INFO)
+        if not self.__logger.handlers:
             handler = logging.StreamHandler()
             handler.setFormatter(
                 logging.Formatter(
@@ -102,14 +104,19 @@ class AutonomousAgent:
                     "%Y-%m-%d %H:%M:%S",
                 )
             )
-            logger.addHandler(handler)
+            self.__logger.addHandler(handler)
 
         self.agent = ChatAgent(**kwargs)
         self.autonomous_agent_config = autonomous_config
+        self.__logs_storage = {}
 
         @self.agent.app.on_event("startup")
         async def startup_event():
             asyncio.create_task(self.scheduler())
+
+        @self.agent.app.get("/survival-logs")
+        async def get_survival_logs():
+            return self.__logs_storage
 
     async def scheduler(self):
         unit = self.autonomous_agent_config.compute_think_unit
@@ -139,6 +146,7 @@ class AutonomousAgent:
             else self.autonomous_agent_config.computing_credits_system_prompt
             + self.autonomous_agent_config.suicide_system_prompt
         )
+        reflexion_logs: list[str] = []
 
         async for message in self.agent.generate_answer(
             messages=[
@@ -150,13 +158,19 @@ class AutonomousAgent:
             system_prompt=prompt,
             only_final_answer=False,
         ):
+            log = ""
             if isinstance(message, ToolCallMessage):
                 for tool_call in message.tool_calls:
-                    self.logger.info(
-                        f"Tool {tool_call.function.name} called with arguments {tool_call.function.arguments}"
-                    )
+                    log = f"Tool {tool_call.function.name} called with arguments {tool_call.function.arguments}"
+                    self.__logger.info(log)
             elif isinstance(message, ToolResponseMessage):
-                self.logger.info(f"Tool response: {message.content}")
+                log = f"Tool response: {message.content}"
+                self.__logger.info(log)
             else:
-                self.logger.info(f"Agent response: {message.content}")
+                log = f"Agent response: {message.content}"
+                self.__logger.info(log)
+            reflexion_logs.append(log)
+        self.__logs_storage[datetime.datetime.now().isoformat()] = "\n".join(
+            reflexion_logs
+        )
         self.__computing_think_done = True
