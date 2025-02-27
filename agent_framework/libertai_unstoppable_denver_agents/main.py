@@ -1,9 +1,6 @@
 import asyncio
 import os
-import threading
-import time
 
-import schedule
 from coinbase_agentkit import (
     AgentKit,
     AgentKitConfig,
@@ -90,7 +87,23 @@ class AutonomousAgent:
         self.agent = ChatAgent(**kwargs)
         self.autonomous_agent_config = autonomous_config
 
-        self.schedule_cloud_credits_thinking()
+        @self.agent.app.on_event("startup")
+        async def startup_event():
+            asyncio.create_task(self.scheduler())
+
+    async def scheduler(self):
+        unit = self.autonomous_agent_config.compute_think_unit
+        unit_multiplier = 1
+        if unit == "minutes":
+            unit_multiplier = 60
+        elif unit == "hours":
+            unit_multiplier = 3600
+
+        while True:
+            await self.manage_computing_credits()
+            await asyncio.sleep(
+                self.autonomous_agent_config.compute_think_interval * unit_multiplier
+            )
 
     async def manage_computing_credits(self) -> None:
         """Call the agent to make it decide if it wants to buy $ALEPH for computing or not"""
@@ -119,40 +132,3 @@ class AutonomousAgent:
         ):
             print(message)
         self.__computing_think_done = True
-
-    def schedule_cloud_credits_thinking(self) -> None:
-        """Schedules the cloud credits reflexion task"""
-        unit = self.autonomous_agent_config.compute_think_unit
-        interval = self.autonomous_agent_config.compute_think_interval
-
-        if unit == "minutes":
-            schedule.every(interval).minutes.do(
-                self.run_async_task, self.manage_computing_credits
-            )
-        elif unit == "hours":
-            schedule.every(interval).hours.do(
-                self.run_async_task, self.manage_computing_credits
-            )
-        elif unit == "seconds":
-            schedule.every(interval).seconds.do(
-                self.run_async_task, self.manage_computing_credits
-            )
-        else:
-            raise ValueError("Invalid time unit. Use 'seconds', 'minutes', or 'hours'.")
-
-        thread = threading.Thread(target=self.run_scheduler, daemon=True)
-        thread.start()
-
-    @staticmethod
-    def run_async_task(func) -> None:
-        """Runs an async function inside an event loop."""
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(func())
-
-    @staticmethod
-    def run_scheduler() -> None:
-        """Continuously run scheduled tasks in a separate thread."""
-        while True:
-            schedule.run_pending()
-            time.sleep(10)  # Prevents excessive CPU usage
