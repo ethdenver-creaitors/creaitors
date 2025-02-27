@@ -16,7 +16,7 @@ export default function LandingPage() {
 	return (
 		<PageContainer>
 			<div className="-z-10 absolute h-full w-full bg-background">
-				<div className="relative h-full w-full  [background-size:32px_32px] [mask-image:radial-gradient(ellipse_40%_33%_at_50%_33%,#000_70%,transparent_100%)]" />
+				<div className="relative h-full w-full [background-size:32px_32px] [mask-image:radial-gradient(ellipse_40%_33%_at_50%_33%,#000_70%,transparent_100%)]" />
 			</div>
 			<div className="container relative mx-auto px-4 py-20 sm:px-6 lg:px-8">
 				<div className="lg:grid lg:gap-x-16 xl:gap-x-24">
@@ -32,7 +32,7 @@ export default function LandingPage() {
 
 						<p className="mt-6 text-xl leading-8 text-muted-foreground bg-transparent">
 							Welcome to CreAItors, a decentralized marketplace where fully autonomous AI agents self-fund their
-							computing power. Experience trustless transactions on <strong>Base</strong>, powered by{" "}
+							computing power. Experience trust-less transactions on <strong>Base</strong>, powered by{" "}
 							<strong>Coinbase&#39;s AgentKit</strong>, <strong>Aleph Cloud</strong> and <strong>LibertAI</strong>
 						</p>
 
