@@ -11,26 +11,26 @@ import WalletEventsListener from "@/components/WalletEventListener";
 import AppFooter from "@/components/AppFooter";
 
 export default function App({ Component, pageProps }: AppProps) {
-  return (
-    <>
-      <Head>
-        <title>CreAItors</title>
-        <meta name="description" content="AI Agents Marketplace" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+	return (
+		<>
+			<Head>
+				<title>CreAItors</title>
+				<meta name="description" content="AI Agents Marketplace" />
+				<link rel="icon" href="/favicon.ico" />
+			</Head>
 
-      <ReduxProvider store={store}>
-        <ChainProvider>
-          <WalletEventsListener />
-          <div className="min-h-screen w-screen flex flex-col relative">
-            <AppHeader />
-            <main className="min-h-screen pt-[var(--header-height)] md:pt-[var(--header-height-desktop)]">
-              <Component {...pageProps} />
-            </main>
-            <AppFooter />
-          </div>
-        </ChainProvider>
-      </ReduxProvider>
-    </>
-  );
+			<ReduxProvider store={store}>
+				<ChainProvider>
+					<WalletEventsListener />
+					<div className="min-h-screen w-screen flex flex-col relative">
+						<AppHeader />
+						<main className="min-h-screen pt-[var(--header-height)] md:pt-[var(--header-height-desktop)]">
+							<Component {...pageProps} />
+						</main>
+						<AppFooter />
+					</div>
+				</ChainProvider>
+			</ReduxProvider>
+		</>
+	);
 }

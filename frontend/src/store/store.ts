@@ -3,9 +3,9 @@ import { configureStore } from "@reduxjs/toolkit";
 import alephReducer from "./reducers/alephSlice";
 
 export const store = configureStore({
-  reducer: {
-    aleph: alephReducer,
-  },
+	reducer: {
+		aleph: alephReducer,
+	},
 });
 
 export type AppState = ReturnType<typeof store.getState>;

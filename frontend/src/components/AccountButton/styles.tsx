@@ -1,11 +1,11 @@
-import styled, { css } from 'styled-components'
+import styled, { css } from "styled-components";
 
 export const StyledAmountInformationContainer = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 
-  ${({ theme }) => css`
-    background: ${theme.color.base1};
-  `}
-`
+	${({ theme }) => css`
+		background: ${theme.color.base1};
+	`}
+`;
