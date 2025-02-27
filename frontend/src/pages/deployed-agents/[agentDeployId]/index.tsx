@@ -7,6 +7,7 @@ import { DeployedAgent, DeployedAgentStatus } from "@/types/agent";
 import { agentsApiServer } from "@/utils/constants";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Loader } from "@/components/loader";
 
 export type ConfigureAgentDeployFormValues = {
 	name?: string;
@@ -67,7 +68,7 @@ export default function DeployAgentsPage() {
 		return agents.find((agent) => agent.id === deployedAgent.agent_hash);
 	}, [agents, deployedAgent]);
 
-	if (isLoadingAgents) return <div>Loading...</div>;
+	if (isLoadingAgents) return <Loader size={42} />;
 	if (!deployedAgent) return <div>Deployment not found</div>;
 	if (!agent) return <div>Agent not found</div>;
 

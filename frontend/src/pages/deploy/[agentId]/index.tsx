@@ -13,6 +13,7 @@ import { useForm } from "react-hook-form";
 import { useSelector } from "react-redux";
 import { v4 as uuidv4 } from "uuid";
 import { useSignMessage } from "wagmi";
+import { Loader } from "@/components/loader";
 
 export type ConfigureAgentDeployFormValues = {
 	name?: string;
@@ -84,7 +85,7 @@ export default function DeployAgentPage() {
 		}
 	};
 
-	if (isLoadingAgents) return <div>Loading...</div>;
+	if (isLoadingAgents) return <Loader size={42} />;
 	if (!agent) return <div>Agent not found</div>;
 
 	return (
