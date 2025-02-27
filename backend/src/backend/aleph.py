@@ -165,7 +165,7 @@ async def get_instance_price(item_hash: str) -> Tuple[Decimal, Decimal]:
 async def create_instance_flow(aleph_account: ETHAccount, receiver_address: str, instance_flow_amount: Decimal):
     existing_flow = await aleph_account.get_flow(receiver_address)
     existing_flow_rate = Decimal(existing_flow["flowRate"] or 0)
-    if 0 < existing_flow_rate < instance_flow_amount:
+    if existing_flow_rate < instance_flow_amount:
         flow_to_update = instance_flow_amount - existing_flow_rate
         operator_flow_tx = await aleph_account.manage_flow(
             receiver=receiver_address,

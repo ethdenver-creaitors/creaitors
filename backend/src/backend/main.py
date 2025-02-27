@@ -140,7 +140,7 @@ async def deploy_agent(
         }
 
     # Create and start the autonomous agent deployment
-    deployment = orchestrator.get(agent_id=str(agent_id))
+    deployment = orchestrator.get(agent_id=str(agent_id), deploy=True)
     if not deployment:
         orchestrator.new(
             deployment=agent,
@@ -160,13 +160,15 @@ async def get_agent_info(
     orchestrator: DeploymentOrchestrator = Depends(get_orchestrator_service)
 ):
     """Get an agent by an agent ID"""
-    agent = orchestrator.get(agent_id)
-    if not agent:
+    deployment = orchestrator.get(agent_id)
+    if not deployment:
         agent = await get_agent(agent_id)
         if not agent:
             return {
                 "error": True,
                 "message": f"Agent with id {agent_id} not found",
             }
+    else:
+        agent = deployment.deployment
 
     return agent

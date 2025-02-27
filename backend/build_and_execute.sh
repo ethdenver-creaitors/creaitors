@@ -11,7 +11,7 @@ if [ $? -ne 0 ]; then
 fi
 echo "Docker Image '$IMAGE_NAME' build successfully."
 
-docker run --network ip6net --name $IMAGE_NAME --env-file=./.env -p 8000:8000 -d $CONTAINER_NAME
+docker run --network ip6net --name $IMAGE_NAME --env-file=./.env -v ./keys:/app/keys -p 8000:8000 -d $CONTAINER_NAME
 if [ $? -ne 0 ]; then
   echo "Error executing IPv6 $CONTAINER_NAME container."
   exit 1

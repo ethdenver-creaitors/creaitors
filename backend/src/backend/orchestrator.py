@@ -312,9 +312,9 @@ class DeploymentOrchestrator(BaseModel):
         self.running_deployments[deployment.id] = orchestration
         run_in_new_loop(orchestration.deploy())
 
-    def get(self, agent_id: str) -> Optional[AgentOrchestration]:
+    def get(self, agent_id: str, deploy: bool = False) -> Optional[AgentOrchestration]:
         agent_deployment = self.running_deployments.get(agent_id, None)
-        if agent_deployment:
+        if agent_deployment and deploy:
             run_in_new_loop(agent_deployment.deploy())
 
         return agent_deployment
