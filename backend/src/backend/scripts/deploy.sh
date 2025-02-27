@@ -44,7 +44,7 @@ else
   FINAL_CODE_PATH="$CODE_PATH/$CODE_FOLDER_NAME"
 fi
 
-wget https://raw.githubusercontent.com/ethdenver-creaitors/creaitors/refs/heads/feature-implement_backend_code/backend/src/backend/scripts/$2.Dockerfile -O $DOCKERFILE_PATH -q --no-cache
+wget https://raw.githubusercontent.com/ethdenver-creaitors/creaitors/refs/heads/main/backend/src/backend/scripts/$2.Dockerfile -O $DOCKERFILE_PATH -q --no-cache
 docker buildx build -q "$FINAL_CODE_PATH" \
   -f $DOCKERFILE_PATH \
   -t $IMAGE_NAME \
