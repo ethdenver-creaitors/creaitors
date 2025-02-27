@@ -97,7 +97,8 @@ def make_eth_to_aleph_conversion(aleph_account: ETHAccount, required_eth_tokens:
     try:
         w3.eth.call(tx)
     except Exception as e:
-        print(f"Error en simulación: {e}")
+        print(f"Error in TX simulation: {e}")
+        raise ValueError(print(f"Error in TX simulation: {e}"))
 
     signed_transaction = w3.eth.account.sign_transaction(tx, private_key=aleph_account.export_private_key())
     tx_hash = w3.eth.send_raw_transaction(signed_transaction.rawTransaction)

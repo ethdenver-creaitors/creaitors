@@ -25,14 +25,9 @@ def create_app() -> FastAPI:
     """
     application = FastAPI(title='CreAItors agents')
 
-    origins = [
-        "https://console.creaitors.io",
-        "http://localhost:3000",
-    ]
-
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=origins,
+        allow_origins=["*"],
         allow_methods=["*"],
         allow_headers=["*"],
     )

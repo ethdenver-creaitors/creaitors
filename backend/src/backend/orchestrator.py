@@ -137,7 +137,7 @@ class AgentOrchestration(BaseModel):
             flow=instance_flow_amount
         )
         print(f"Operator flow created with TX hash {operator_flow_tx}")
-        await asyncio.sleep(2)  # Added a sleep time between flows creation to avoid fails
+        await asyncio.sleep(10)  # Added a sleep time between flows creation to avoid fails
         community_flow_tx = await aleph_account.create_flow(
             receiver=ALEPH_COMMUNITY_RECEIVER,
             flow=community_flow_amount
