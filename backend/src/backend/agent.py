@@ -54,8 +54,16 @@ async def get_agent(agent_id: str, check_result: bool = True) -> Optional[Fetche
     return agents[0]
 
 
-def generate_env_file_content(private_key: str, env_variables: Optional[Dict[str, str]] = None) -> bytes:
+def generate_fixed_env_variables(private_key: str, creator_address: str, owner_address: str) -> str:
     content = f"AGENT_WALLET_PRIVATE_KEY={private_key}\n"
+    content += f"PLATFORM_REWARD_ADDRESS={config.PLATFORM_REWARD_ADDRESS}\n"
+    content += f"CREAITOR_REWARD_ADDRESS={creator_address}\n"
+    content += f"OWNER_REWARD_ADDRESS={owner_address}\n"
+    return content
+
+
+def generate_env_file_content(injected_content: str, env_variables: Optional[Dict[str, str]] = None) -> bytes:
+    content = injected_content
     if env_variables:
         for name, value in env_variables:
             content += f"{name}={value}"

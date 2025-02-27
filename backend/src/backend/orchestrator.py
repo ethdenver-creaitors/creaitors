@@ -9,12 +9,12 @@ from typing import Dict, Optional
 from aleph.sdk.chains.ethereum import ETHAccount
 from aleph.sdk.client.authenticated_http import AuthenticatedAlephHttpClient
 from aleph.sdk.conf import settings
-from aleph_message.models import Chain, Payment, PaymentType, StoreMessage
+from aleph_message.models import Chain, Payment, PaymentType, StoreMessage, PostMessage
 from aleph_message.models.execution.environment import HypervisorType, HostRequirements, NodeRequirements
 
 from pydantic.main import BaseModel
 
-from backend.agent import get_agent, generate_env_file_content
+from backend.agent import get_agent, generate_env_file_content, generate_fixed_env_variables
 from backend.aleph import notify_allocation, fetch_instance_ip, amend_message, get_code_file, get_code_hash, \
     get_instance_price, create_instance_flow
 from backend.blockchain import make_eth_to_aleph_conversion, convert_aleph_to_eth
@@ -36,7 +36,8 @@ class AgentOrchestration(BaseModel):
     deployment: FetchedAgentDeployment
     ssh_private_key: str
     ssh_public_key: str
-    env_variables: Dict[str, str]
+    creator_wallet: Optional[str] = None
+    env_variables: Dict[str, str] = {}
 
     class Config:
         arbitrary_types_allowed = True
@@ -45,6 +46,20 @@ class AgentOrchestration(BaseModel):
         # Refresh agent post from the network
         agent = await get_agent(str(self.deployment.id))
         self.deployment = agent
+        # Get agent creator wallet
+        if not self.creator_wallet:
+            async with AuthenticatedAlephHttpClient(
+                    account=self.aleph_account, api_server=config.ALEPH_API_URL
+            ) as client:
+                agent_message = await client.get_message(self.deployment.agent_hash, with_status=False)
+                if not agent_message:
+                    raise ValueError(f"Agent with hash {self.deployment.agent_hash} not found")
+
+                if not isinstance(agent_message, PostMessage):
+                    raise ValueError(f"Hash {self.deployment.agent_hash} isn't an agent")
+
+                self.creator_wallet = agent_message.content.address
+
         await self._continue_actions()
 
     async def _continue_actions(self):
@@ -236,7 +251,13 @@ class AgentOrchestration(BaseModel):
             # Send the env variable file
             sftp = ssh_client.open_sftp()
             wallet_private_key = self.aleph_account.export_private_key()
-            content = generate_env_file_content(wallet_private_key, None)
+
+            fixed_env_variables = generate_fixed_env_variables(
+                private_key=wallet_private_key,
+                creator_address=self.creator_wallet,
+                owner_address=self.deployment.owner,
+            )
+            content = generate_env_file_content(fixed_env_variables, self.env_variables)
             remote_path = "/tmp/.env"
             sftp.putfo(io.BytesIO(content), remote_path)
             sftp.close()
