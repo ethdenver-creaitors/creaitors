@@ -3,6 +3,7 @@ import { Skeleton } from "../ui/skeleton";
 import { Agent } from "@/types/agent";
 import { useState } from "react";
 import { StyledAgentCard } from "./styles";
+import { Badge } from "../ui/badge";
 
 export function AgentCardSkeleton() {
 	return (
@@ -48,15 +49,27 @@ export default function AgentCard({ loading, agent, onClick: handleClick }: Agen
 							onLoadingComplete={() => setIsImageLoading(false)}
 						/>
 					)}
-					{(isImageLoading || loading) && (
-						<div className="absolute inset-0">
-							<Skeleton className="h-full w-full rounded-xl" />
-						</div>
-					)}
+					{(isImageLoading || loading) && <Skeleton className="h-full w-full rounded-xl" />}
 					<div className="absolute rounded-xl bottom-0 left-0 right-0 h-1/3 group-hover:h-3/5 bg-gradient-to-t from-secondary/50 group-hover:from-secondary/70 to-transparent transition-all" />
-				</div>
-				<div className="text-md text-left flex gap-x-4 w-full justify-between">
-					{loading ? <Skeleton className="h-[1.2em] w-5/6" /> : <div>{agent.name}</div>}
+					<div className="flex w-full justify-between mt-0.5">
+						<div className="text-md text-left flex gap-x-4 justify-between w-full">
+							{loading ? (
+								<div className="w-full space-y-1">
+									<Skeleton className="h-[1.2em] w-full" />
+									<Skeleton className="h-[1.2em] w-2/3" />
+								</div>
+							) : (
+								<div>{agent.name}</div>
+							)}
+						</div>
+						<div className="flex justify-end w-full">
+							{loading ? (
+								<Skeleton className="h-[1.2em] w-2/3" />
+							) : (
+								agent?.category && <Badge className="hover:bg-primar h-fit text-center">{agent.category}</Badge>
+							)}
+						</div>
+					</div>
 				</div>
 			</StyledAgentCard>
 		</div>

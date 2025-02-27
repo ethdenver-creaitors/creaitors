@@ -8,12 +8,15 @@ import { ItemType } from "@aleph-sdk/message";
 import { useSelector } from "react-redux";
 import { AppState } from "@/store/store";
 import { Textarea } from "../ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { agentCategories } from "@/utils/constants";
 
 export type UploadAgentFormValues = {
 	name?: string;
 	description?: string;
 	sourceCode?: File | undefined;
 	image?: File | undefined;
+	category?: string;
 };
 
 export default function UploadAgentForm() {
@@ -23,6 +26,7 @@ export default function UploadAgentForm() {
 			description: undefined,
 			sourceCode: undefined,
 			image: undefined,
+			category: undefined,
 		};
 	}, []);
 
@@ -57,6 +61,7 @@ export default function UploadAgentForm() {
 			content: {
 				name: data.name,
 				description: data.description,
+				category: data.category,
 				source_code_hash: storeSourceCodeResponse.item_hash,
 				image: storeImageResponse.item_hash,
 			},
@@ -115,6 +120,32 @@ export default function UploadAgentForm() {
 						</FormItem>
 					)}
 				/>
+				{/* Category Select */}
+				<FormField
+					control={control}
+					name="category"
+					render={({ field }) => (
+						<FormItem>
+							<FormLabel>Category</FormLabel>
+							<FormMessage />
+							<FormControl>
+								<Select onValueChange={field.onChange} value={field.value}>
+									<SelectTrigger>
+										<SelectValue placeholder="Select a category" />
+									</SelectTrigger>
+									<SelectContent>
+										{agentCategories.map((category) => (
+											<SelectItem key={category} value={category}>
+												{category}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							</FormControl>
+						</FormItem>
+					)}
+				/>
+
 				<FormField
 					control={control}
 					name="sourceCode"

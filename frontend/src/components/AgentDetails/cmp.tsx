@@ -1,5 +1,6 @@
 import { Agent } from "@/types/agent";
 import Image from "next/image";
+import { Badge } from "../ui/badge";
 
 export type AgentDetailsProps = {
 	agent: Agent;
@@ -19,6 +20,11 @@ export default function AgentDetails({ agent }: AgentDetailsProps) {
 			</div>
 			<div className="flex flex-col gap-2">
 				<div className="font-extrabold text-3xl">{agent.name}</div>
+				{agent.category && (
+					<div>
+						<Badge>{agent.category}</Badge>
+					</div>
+				)}
 				<div>{agent.description}</div>
 			</div>
 		</div>
