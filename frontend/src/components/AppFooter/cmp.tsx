@@ -4,7 +4,7 @@ import { Github } from "lucide-react";
 export default function AppFooter() {
   return (
     <section>
-      <footer className="border-t">
+      <footer className="border-t bg-background">
         <div className="container mx-auto px-6 py-12">
           <div className="flex flex-col items-center">
             <div className="text-center">

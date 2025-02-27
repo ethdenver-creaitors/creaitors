@@ -15,6 +15,7 @@ import { AuthenticatedAlephHttpClient } from "@aleph-sdk/client";
 import { ItemType } from "@aleph-sdk/message";
 import { useSelector } from "react-redux";
 import { AppState } from "@/store/store";
+import { Textarea } from "../ui/textarea";
 
 export type UploadAgentFormValues = {
   name?: string;
@@ -115,8 +116,8 @@ export default function UploadAgentForm() {
               <FormLabel>Description</FormLabel>
               <FormMessage />
               <FormControl>
-                <Input
-                  placeholder="Autonomous AI Agent that trades makes profit by trading on the crypto market"
+                <Textarea
+                  placeholder="Autonomous AI Agent that makes profit by trading on the crypto market"
                   {...field}
                 />
               </FormControl>

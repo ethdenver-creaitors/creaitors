@@ -4,8 +4,9 @@ import PageContainer from "@/components/PageContainer";
 import { Separator } from "@/components/ui/separator";
 import useFetchAgents from "@/hooks/useFetchAgents";
 import { DeployedAgent, DeployedAgentStatus } from "@/types/agent";
+import { agentsApiServer } from "@/utils/constants";
 import { useRouter } from "next/router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export type ConfigureAgentDeployFormValues = {
   name?: string;
@@ -17,34 +18,54 @@ export type ConfigureAgentDeployFormValues = {
 export default function DeployAgentsPage() {
   const router = useRouter();
   const {
-    query: { agentDeployId },
+    query: { agentDeployId: agentDeployIdRaw },
   } = router;
+
+  const agentDeployId = useMemo(
+    () => agentDeployIdRaw as string,
+    [agentDeployIdRaw]
+  );
 
   const [deployedAgent, setDeployedAgent] = useState<DeployedAgent>();
 
+  const handleFetchDeployedAgent = useCallback(async (id: string) => {
+    const response = await fetch(`${agentsApiServer}/agent/${id}`);
+    const data = await response.json();
+
+    console.log("fetched deployed agent", data);
+
+    setDeployedAgent(data);
+  }, []);
+
+  const requiresUserAction = useCallback((agent: DeployedAgent) => {
+    if (!agent) return false;
+
+    return [
+      DeployedAgentStatus.ALIVE,
+      DeployedAgentStatus.PENDING_FUND,
+    ].includes(agent.status);
+  }, []);
+
+  // If no user action is required, schedule the next poll in 5 seconds
   useEffect(() => {
+    if (!deployedAgent) return;
+
     let timerId: NodeJS.Timeout;
-
-    const fetchData = async () => {
-      if (!agentDeployId) return;
-
-      const response = await fetch(`/api/agent/${agentDeployId}`);
-      const data = await response.json();
-      setDeployedAgent(data);
-
-      // If no user action is required, schedule the next poll in 5 seconds
-      if (
-        ![DeployedAgentStatus.ALIVE, DeployedAgentStatus.PENDING_FUND].includes(
-          data.status
-        )
-      )
-        timerId = setTimeout(fetchData, 5000);
-    };
-
-    fetchData();
+    if (!requiresUserAction(deployedAgent)) {
+      timerId = setTimeout(
+        () => handleFetchDeployedAgent(deployedAgent.id),
+        5000
+      );
+    }
 
     return () => clearTimeout(timerId);
-  }, [agentDeployId]);
+  }, [deployedAgent, requiresUserAction, handleFetchDeployedAgent]);
+
+  useEffect(() => {
+    if (!agentDeployId) return;
+
+    handleFetchDeployedAgent(agentDeployId);
+  }, [agentDeployId, handleFetchDeployedAgent]);
 
   const { agents, isLoading: isLoadingAgents } = useFetchAgents();
 
@@ -70,31 +91,10 @@ export default function DeployAgentsPage() {
           <Separator orientation="vertical" className="w-1" />
         </div>
         <div className="flex flex-col gap-4 w-full">
-          <DeployedAgentDetails deployedAgent={deployedAgent} />
-          {/* <Form {...form}>
-          <form
-            onSubmit={handleSubmit(onSubmit)}
-            className="flex flex-col gap-4"
-          >
-            <FormField
-              control={control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormMessage />
-                  <FormControl>
-                    <Input placeholder="My AI Agent" {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    Used to easily identify your running agent
-                  </FormDescription>
-                </FormItem>
-              )}
-            />
-            <Button type="submit">Submit</Button>
-          </form>
-        </Form> */}
+          <DeployedAgentDetails
+            deployedAgent={deployedAgent}
+            updateAgentDetails={handleFetchDeployedAgent}
+          />
         </div>
       </div>
     </PageContainer>

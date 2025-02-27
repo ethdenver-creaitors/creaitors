@@ -12,15 +12,18 @@ import {
 import { useCallback, useMemo } from "react";
 import { base } from "viem/chains";
 import { Button } from "../ui/button";
-import { useBalance } from "wagmi";
+import { useBalance, useSignMessage } from "wagmi";
 import { Separator } from "../ui/separator";
+import { agentsApiServer } from "@/utils/constants";
 
 export type DeployedAgentDetailsProps = {
   deployedAgent: DeployedAgent;
+  updateAgentDetails: (agentId: string) => void;
 };
 
 export default function DeployedAgentDetails({
   deployedAgent,
+  updateAgentDetails,
 }: DeployedAgentDetailsProps) {
   const steps = useMemo(
     () => ({
@@ -62,24 +65,52 @@ export default function DeployedAgentDetails({
     address: deployedAgent.wallet_address,
   });
 
-  const isAgentWalletFunded = useMemo(() => {
-    if (!agentBalance.data) return false;
+  const agentWalletBalance = useMemo(() => {
+    if (!agentBalance.data) return 0;
 
     const { value, decimals } = agentBalance.data;
 
-    return (
-      Number(value) / 10 ** decimals >=
-      Number(deployedAgent.min_required_tokens)
-    );
-  }, [agentBalance.data, deployedAgent.min_required_tokens]);
+    return Number(value) / 10 ** decimals;
+  }, [agentBalance]);
+
+  const isAgentWalletFunded = useMemo(() => {
+    return agentWalletBalance >= deployedAgent.required_tokens;
+  }, [agentWalletBalance, deployedAgent]);
+
+  const { signMessageAsync } = useSignMessage();
 
   const handleFinishFundWalletStep = useCallback(async () => {
-    const response = await fetch(`/api/agent/${deployedAgent.id}/deploy`);
+    const unsignedAgentKey = `SIGN AGENT ${deployedAgent.owner} ${deployedAgent.id}`;
+    const signedAgentKey = await signMessageAsync({
+      message: unsignedAgentKey,
+    });
+
+    const requestBody = {
+      name: deployedAgent.name,
+      agent_id: deployedAgent.id,
+      agent_hash: deployedAgent.agent_hash,
+      owner: deployedAgent.owner,
+      agent_key: signedAgentKey,
+    };
+
+    console.log("requestBody", requestBody);
+
+    // return;
+
+    const response = await fetch(`${agentsApiServer}/agent/deploy`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    });
 
     const data = await response.json();
 
     console.log("data", data);
-  }, [deployedAgent]);
+
+    updateAgentDetails(deployedAgent.id);
+  }, [deployedAgent, signMessageAsync, updateAgentDetails]);
 
   const AgentWallet = useMemo(() => {
     return (
@@ -94,6 +125,20 @@ export default function DeployedAgentDetails({
     );
   }, [deployedAgent]);
 
+  const fundTransactionAmount = useMemo(
+    () => deployedAgent.required_tokens - agentWalletBalance,
+    [deployedAgent, agentWalletBalance]
+  );
+
+  const fundTransactionCall = useMemo(() => {
+    return {
+      to: deployedAgent.wallet_address,
+      value: BigInt(Math.floor(fundTransactionAmount * 10 ** 18)),
+    };
+  }, [deployedAgent, fundTransactionAmount]);
+
+  console.log("fundTransactionAmount", fundTransactionAmount);
+
   const StepContent = useMemo(() => {
     switch (deployedAgent.status) {
       case "PENDING_FUND":
@@ -102,7 +147,7 @@ export default function DeployedAgentDetails({
             <p>
               In order to make the AI Agent start working its wallet needs a
               minimum funds of{" "}
-              <strong>{deployedAgent.min_required_tokens} ETH</strong>
+              <strong>{deployedAgent.required_tokens} ETH</strong>
             </p>
             <div className="space-y-2">
               <p className="font-bold text-xl">AI Agent Wallet</p>
@@ -110,17 +155,13 @@ export default function DeployedAgentDetails({
                 {AgentWallet}
                 <Transaction
                   className="flex-1"
-                  calls={[
-                    {
-                      to: deployedAgent.wallet_address,
-                      value: BigInt(
-                        Number(deployedAgent.min_required_tokens) * 10 ** 18
-                      ),
-                    },
-                  ]}
+                  calls={[fundTransactionCall]}
                   chainId={base.id}
                 >
-                  <TransactionButton text="Fund AI Agent" className="w-fit" />
+                  <TransactionButton
+                    text={`Fund ${fundTransactionAmount} ETH to AI Agent`}
+                    className="w-fit"
+                  />
                   <TransactionToast>
                     <TransactionToastIcon />
                     <TransactionToastLabel />
@@ -130,7 +171,7 @@ export default function DeployedAgentDetails({
               </div>
             </div>
             <Button
-              disabled={!isAgentWalletFunded}
+              // disabled={!isAgentWalletFunded}
               onClick={handleFinishFundWalletStep}
             >
               Continue
@@ -159,8 +200,9 @@ export default function DeployedAgentDetails({
   }, [
     AgentWallet,
     deployedAgent,
+    fundTransactionAmount,
+    fundTransactionCall,
     handleFinishFundWalletStep,
-    isAgentWalletFunded,
   ]);
 
   return (

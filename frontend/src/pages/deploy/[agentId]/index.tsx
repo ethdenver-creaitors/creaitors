@@ -14,8 +14,9 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import useFetchAgents from "@/hooks/useFetchAgents";
 import { AppState } from "@/store/store";
+import { agentsApiServer } from "@/utils/constants";
 import { useRouter } from "next/router";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { useSelector } from "react-redux";
 import { v4 as uuidv4 } from "uuid";
@@ -56,6 +57,10 @@ export default function DeployAgentPage() {
     defaultValues,
   });
 
+  useEffect(() => {
+    form.reset(defaultValues);
+  }, [defaultValues, form]);
+
   const { handleSubmit, control } = form;
 
   const { signMessageAsync } = useSignMessage();
@@ -75,7 +80,7 @@ export default function DeployAgentPage() {
     };
     console.log("requestBody", requestBody);
 
-    const response = await fetch("/api/deploy", {
+    const response = await fetch(`${agentsApiServer}/agent`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -21,7 +21,7 @@ export type DeployedAgent = {
   name: string;
   owner: Address;
   wallet_address: Address;
-  min_required_tokens: string;
+  required_tokens: number;
   instance_hash: string;
   agent_hash: string;
   last_update: number;
