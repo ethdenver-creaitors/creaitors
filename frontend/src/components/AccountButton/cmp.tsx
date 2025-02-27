@@ -37,7 +37,7 @@ export default function AccountButton({
           <Address />
           <EthBalance />
         </Identity>
-        <WalletDropdownLink icon={<Bot />} href="/" className="bg-primary">
+        <WalletDropdownLink icon={<Bot />} href="/">
           My agents
         </WalletDropdownLink>
         <WalletDropdownLink

@@ -3,7 +3,7 @@ import { Github } from "lucide-react";
 
 export default function AppFooter() {
   return (
-    <section className="mt-20">
+    <section>
       <footer className="border-t">
         <div className="container mx-auto px-6 py-12">
           <div className="flex flex-col items-center">
