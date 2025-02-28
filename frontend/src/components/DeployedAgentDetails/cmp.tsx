@@ -198,7 +198,7 @@ export default function DeployedAgentDetails({ deployedAgent, updateAgentDetails
 		<>
 			<div className="flex items-start gap-2">
 				<p className="font-extrabold text-5xl">{currentStep.name}</p>
-				<p className="text-2xl">[Step {currentStep.order} of 5]</p>
+				{deployedAgent.status !== "ALIVE" && <p className="text-2xl">[Step {currentStep.order} of 5]</p>}
 			</div>
 			<p className="italic">{currentStep.description}</p>
 			<Separator />
