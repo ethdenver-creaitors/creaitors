@@ -32,32 +32,38 @@ export default function DeployedAgentDetails({ deployedAgent, updateAgentDetails
 			[DeployedAgentStatus.PENDING_FUND]: {
 				order: 1,
 				name: "Pending funds",
-				description: "Pending funds in agent wallet",
+				description:
+					"The AI Agent's wallet is currently empty and requires a minimum amount of ETH to be funded before it can proceed to the next step. Please ensure the wallet has the necessary funds to continue.",
 			},
 			[DeployedAgentStatus.PENDING_SWAP]: {
 				order: 2,
 				name: "Pending Swap",
-				description: "Agent instance is swaping for computing tokens",
+				description:
+					"The AI Agent is in the process of swapping the received ETH for computing tokens. This step is crucial for the agent to acquire the necessary resources for its operations.",
 			},
 			[DeployedAgentStatus.PENDING_ALLOCATION]: {
 				order: 3,
 				name: "Allocating",
-				description: "Agent instance is waiting for allocation",
+				description:
+					"The AI Agent is currently waiting for the allocation of computing resources. This step involves assigning the required computational power to the agent to ensure it can perform its tasks efficiently.",
 			},
 			[DeployedAgentStatus.PENDING_START]: {
 				order: 4,
 				name: "Starting",
-				description: "Agent instance is starting",
+				description:
+					"The AI Agent is in the process of starting up. This involves initializing its systems and preparing to begin its operations. Please wait while the agent completes its startup sequence.",
 			},
 			[DeployedAgentStatus.PENDING_DEPLOY]: {
 				order: 5,
 				name: "Deploying",
-				description: "Agent is being deployed",
+				description:
+					"The AI Agent is being deployed. This step involves setting up the agent in the designated environment and ensuring all configurations are correctly applied. Deployment is the final step before the agent becomes operational.",
 			},
 			[DeployedAgentStatus.ALIVE]: {
 				order: 6,
 				name: "Alive",
-				description: "Agent is alive",
+				description:
+					"The AI Agent is fully operational and alive. It is now actively performing its designated tasks and can be monitored for performance and status updates.",
 			},
 		}),
 		[],
