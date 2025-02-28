@@ -27,7 +27,7 @@ export default function AccountButton({ withName = true }: Readonly<{ withName?:
 					<Address />
 					<EthBalance />
 				</Identity>
-				<WalletDropdownLink icon={<Bot />} href="/">
+				<WalletDropdownLink icon={<Bot />} href="/deployed-agents">
 					My agents
 				</WalletDropdownLink>
 				<WalletDropdownLink icon="wallet" href="https://keys.coinbase.com" target="_blank">
