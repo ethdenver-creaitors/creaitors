@@ -5,6 +5,8 @@ export type StyledAgentCardProps = {
 };
 
 export const StyledAgentCard = styled.div<StyledAgentCardProps>`
+	position: relative;
+
 	${({ $clickable }) =>
 		$clickable &&
 		css`

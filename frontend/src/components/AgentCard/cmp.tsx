@@ -32,28 +32,28 @@ type AgentCardLoadedProps = {
 
 export type AgentCardProps = AgentCardLoadingProps | AgentCardLoadedProps;
 
-export default function AgentCard({ loading, agent, onClick: handleClick }: AgentCardProps) {
+export default function AgentCard({ loading: isLoadingAgent, agent, onClick: handleClick }: AgentCardProps) {
 	const [isImageLoading, setIsImageLoading] = useState(true);
 
 	return (
 		<div className="flex flex-col items-center justify-center px-0.5">
 			<StyledAgentCard $clickable={!!handleClick} onClick={() => handleClick && handleClick(agent)}>
 				<div className="relative h-48 w-48 rounded-t-xl mb-0.5 group">
-					{!loading && (
+					{!isLoadingAgent && (
 						<Image
 							src={agent.image}
 							alt="Agent image"
-							className="min-h-full w-full object-cover rounded-xl"
+							className="absolute min-h-full w-full object-cover rounded-xl"
 							width={0}
 							height={0}
 							onLoadingComplete={() => setIsImageLoading(false)}
 						/>
 					)}
-					{(isImageLoading || loading) && <Skeleton className="h-full w-full rounded-xl" />}
+					{(isImageLoading || isLoadingAgent) && <Skeleton className="absolute h-full w-full rounded-xl" />}
 					<div className="absolute rounded-xl bottom-0 left-0 right-0 h-1/3 group-hover:h-3/5 bg-gradient-to-t from-secondary/50 group-hover:from-secondary/70 to-transparent transition-all" />
-					<div className="flex w-full justify-between mt-0.5">
+					<div className="pt-48 flex w-full justify-between mt-0.5">
 						<div className="text-md text-left flex gap-x-4 justify-between w-full">
-							{loading ? (
+							{isLoadingAgent ? (
 								<div className="w-full space-y-1">
 									<Skeleton className="h-[1.2em] w-full" />
 									<Skeleton className="h-[1.2em] w-2/3" />
@@ -63,7 +63,7 @@ export default function AgentCard({ loading, agent, onClick: handleClick }: Agen
 							)}
 						</div>
 						<div className="flex justify-end w-full">
-							{loading ? (
+							{isLoadingAgent ? (
 								<Skeleton className="h-[1.2em] w-2/3" />
 							) : (
 								agent?.category && <Badge className="hover:bg-primar h-fit text-center">{agent.category}</Badge>
