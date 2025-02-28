@@ -3,22 +3,24 @@ from pathlib import Path
 
 from typing import Optional, Any, Tuple
 
-from ipaddress import IPv6Interface
-
 from aiohttp import (
     ClientConnectorError,
     ClientResponseError,
     ConnectionTimeoutError,
     ClientSession,
 )
+from ipaddress import IPv6Interface
 
 from aleph.sdk.chains.ethereum import ETHAccount
 from aleph.sdk.client.authenticated_http import AuthenticatedAlephHttpClient, AlephHttpClient
+from aleph.sdk.conf import settings
 from aleph.sdk.evm_utils import FlowUpdate
 from aleph.sdk.query.filters import PostFilter
-from aleph_message.models import InstanceMessage
+from aleph_message.models import InstanceMessage, Chain, Payment, PaymentType, StoreMessage
+from aleph_message.models.execution.environment import HypervisorType, HostRequirements, NodeRequirements
 
 from backend.config import config
+from backend.models import FetchedAgentDeployment, CRNInfo
 from backend.utils import format_cost
 
 PATH_ABOUT_EXECUTIONS_LIST = "/about/executions/list"
@@ -56,6 +58,56 @@ async def fetch_instance_ip(crn_url: str, item_hash: str) -> str:
             raise ValueError()
 
     return ""
+
+
+async def create_instance_message(
+        account: ETHAccount,
+        deployment: FetchedAgentDeployment,
+        ssh_public_key: str,
+        crn: CRNInfo
+) -> InstanceMessage:
+    async with AuthenticatedAlephHttpClient(
+            account=account, api_server=config.ALEPH_API_URL
+    ) as client:
+        rootfs = settings.UBUNTU_24_QEMU_ROOTFS_ID
+        rootfs_message: StoreMessage = await client.get_message(
+            item_hash=rootfs, message_type=StoreMessage
+        )
+        rootfs_size = (
+            rootfs_message.content.size
+            if rootfs_message.content.size is not None
+            else settings.DEFAULT_ROOTFS_SIZE
+        )
+
+        # TODO: Find the proper way to select the base CRN, at the moment get a fixed CRN
+        instance_message, _status = await client.create_instance(
+            rootfs=rootfs,
+            rootfs_size=rootfs_size,
+            hypervisor=HypervisorType.qemu,
+            payment=Payment(chain=Chain.BASE, type=PaymentType.superfluid, receiver=crn.receiver_address),
+            requirements=HostRequirements(
+                node=NodeRequirements(
+                    node_hash=crn.hash,
+                )
+            ),
+            channel=config.ALEPH_CHANNEL,
+            address=account.get_address(),
+            ssh_keys=[
+                ssh_public_key,
+                # Give access to the VM only on development/testing time
+                config.DEVELOPMENT_PUBLIC_KEY,
+                config.DEVELOPMENT_ALT_PUBLIC_KEY
+            ],
+            metadata={
+                "agent_id": deployment.id,
+                "agent_hash": deployment.agent_hash,
+                "name": deployment.name
+            },
+            vcpus=settings.DEFAULT_VM_VCPUS,
+            memory=settings.DEFAULT_INSTANCE_MEMORY,
+            sync=True,
+        )
+        return instance_message
 
 
 async def amend_message(account: ETHAccount, content: Any, ref: str):

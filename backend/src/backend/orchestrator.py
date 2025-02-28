@@ -1,27 +1,23 @@
 import asyncio
-import io
 import time
 
-import paramiko
 from decimal import Decimal
 from typing import Dict, Optional
 
 from aleph.sdk.chains.ethereum import ETHAccount
 from aleph.sdk.client.authenticated_http import AuthenticatedAlephHttpClient
-from aleph.sdk.conf import settings
-from aleph_message.models import Chain, Payment, PaymentType, StoreMessage, PostMessage
-from aleph_message.models.execution.environment import HypervisorType, HostRequirements, NodeRequirements
+from aleph_message.models import PostMessage
 
 from pydantic.main import BaseModel
 
-from backend.agent import get_agent, generate_env_file_content, generate_fixed_env_variables
-from backend.aleph import notify_allocation, fetch_instance_ip, amend_message, get_code_file, get_code_hash, \
-    get_instance_price, create_instance_flow
+from backend.agent import get_agent
+from backend.aleph import notify_allocation, fetch_instance_ip, amend_message, \
+    get_instance_price, create_instance_flow, create_instance_message
 from backend.blockchain import make_eth_to_aleph_conversion, convert_aleph_to_eth
 from backend.config import config
 from backend.models import CRNInfo, AgentDeploymentStatus, FetchedAgentDeployment, HostNotFoundError
-from backend.utils import generate_ssh_key_pair, check_connectivity, run_in_new_loop, format_cost, \
-    create_or_recover_ssh_keys, clean_ssh_keys
+from backend.ssh import agent_ssh_deployment
+from backend.utils import check_connectivity, run_in_new_loop, format_cost, create_or_recover_ssh_keys, clean_ssh_keys
 
 ALEPH_COMMUNITY_RECEIVER = "0x5aBd3258C5492fD378EBC2e0017416E199e5Da56"
 TARGET_CRN = CRNInfo(
@@ -95,47 +91,12 @@ class AgentOrchestration(BaseModel):
             await self.cleanup()
 
     async def create_instance(self):
-        async with AuthenticatedAlephHttpClient(
-                account=self.aleph_account, api_server=config.ALEPH_API_URL
-        ) as client:
-            rootfs = settings.UBUNTU_24_QEMU_ROOTFS_ID
-            rootfs_message: StoreMessage = await client.get_message(
-                item_hash=rootfs, message_type=StoreMessage
-            )
-            rootfs_size = (
-                rootfs_message.content.size
-                if rootfs_message.content.size is not None
-                else settings.DEFAULT_ROOTFS_SIZE
-            )
-
-            # TODO: Find the proper way to select the base CRN, at the moment get a fixed CRN
-            instance_message, _status = await client.create_instance(
-                rootfs=rootfs,
-                rootfs_size=rootfs_size,
-                hypervisor=HypervisorType.qemu,
-                payment=Payment(chain=Chain.BASE, type=PaymentType.superfluid, receiver=TARGET_CRN.receiver_address),
-                requirements=HostRequirements(
-                    node=NodeRequirements(
-                        node_hash=TARGET_CRN.hash,
-                    )
-                ),
-                channel=config.ALEPH_CHANNEL,
-                address=self.aleph_account.get_address(),
-                ssh_keys=[
-                    self.ssh_public_key,
-                    # Give access to the VM only on development/testing time
-                    config.DEVELOPMENT_PUBLIC_KEY,
-                    config.DEVELOPMENT_ALT_PUBLIC_KEY
-                ],
-                metadata={
-                    "agent_id": self.deployment.id,
-                    "agent_hash": self.deployment.agent_hash,
-                    "name": self.deployment.name
-                },
-                vcpus=settings.DEFAULT_VM_VCPUS,
-                memory=settings.DEFAULT_INSTANCE_MEMORY,
-                sync=True,
-            )
+        instance_message = await create_instance_message(
+            account=self.aleph_account,
+            deployment=self.deployment,
+            ssh_public_key=self.ssh_public_key,
+            crn=TARGET_CRN,
+        )
 
         self.deployment.instance_hash = instance_message.item_hash
         self.deployment.status = AgentDeploymentStatus.PENDING_SWAP
@@ -230,68 +191,7 @@ class AgentOrchestration(BaseModel):
                     raise
 
     async def _ssh_deployment(self):
-        # Create a Paramiko SSH client
-        ssh_client = paramiko.SSHClient()
-        ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
-        # Load private key from string
-        rsa_key = paramiko.RSAKey(file_obj=io.StringIO(self.ssh_private_key))
-
-        # Get code file
-        agent_hash = self.deployment.agent_hash
-        code_hash = await get_code_hash(agent_hash)
-        if not code_hash:
-            raise ValueError(f"Code hash not found for Agent hash {agent_hash}")
-
-        code_filename = await get_code_file(code_hash)
-        content = open(code_filename, mode="rb").read()
-
-        try:
-            # Connect to the server
-            ssh_client.connect(hostname=self.deployment.instance_ip, username="root", pkey=rsa_key)
-
-            # Send the zip with the code
-            sftp = ssh_client.open_sftp()
-            remote_path = "/tmp/libertai-agent.zip"
-            sftp.putfo(io.BytesIO(content), remote_path)
-            sftp.close()
-
-            # Send the env variable file
-            sftp = ssh_client.open_sftp()
-            wallet_private_key = self.aleph_account.export_private_key()
-
-            fixed_env_variables = generate_fixed_env_variables(
-                private_key=wallet_private_key,
-                creator_address=self.creator_wallet,
-                owner_address=self.deployment.owner,
-            )
-            content = generate_env_file_content(fixed_env_variables, self.env_variables)
-            remote_path = "/tmp/.env"
-            sftp.putfo(io.BytesIO(content), remote_path)
-            sftp.close()
-
-            # Send the deployment script
-            script_path = f"{config.SCRIPTS_PATH}/deploy.sh"
-            content = open(script_path, mode="rb").read()
-            sftp = ssh_client.open_sftp()
-            remote_path = "/tmp/deploy-agent.sh"
-            sftp.putfo(io.BytesIO(content), remote_path)
-            sftp.close()
-
-            # Execute the command
-            # TODO: Detect the usage type, by default use "fastapi"
-            usage_type = "fastapi"
-            _stdin, _stdout, stderr = ssh_client.exec_command(
-                f"chmod +x {remote_path} && {remote_path} 3.12 poetry {usage_type}"
-            )
-
-            # Waiting for the command to complete to get error logs
-            stderr.channel.recv_exit_status()
-        except Exception as error:
-            raise ValueError(str(error))
-        finally:
-            # Close the connection
-            ssh_client.close()
+        await agent_ssh_deployment(agent_orchestration=self)
 
         self.deployment.status = AgentDeploymentStatus.ALIVE
         self.deployment.last_update = int(time.time())

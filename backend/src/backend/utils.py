@@ -16,6 +16,7 @@ import paramiko
 from uuid import UUID
 from web3 import Web3
 from eth_account.messages import encode_defunct
+from hexbytes import HexBytes
 
 from ecies import encrypt as ecies_encrypt, decrypt as ecies_decrypt
 
@@ -61,6 +62,12 @@ def decrypt(data: str, private_key: str | bytes) -> str:
 
 
 def check_agent_key(agent_id: UUID, owner: str, agent_key: str) -> bool:
+    signature = HexBytes(agent_key)
+
+    # If the signature is bigger than expected, just check using the EIP-712 signature validation
+    if len(signature) > 32:
+        return check_eip_712_signature(owner, agent_key)
+
     agent_account_message = f"{config.WALLET_MESSAGE} {owner} {agent_id}"
 
     w3 = Web3(Web3.HTTPProvider(""))
@@ -68,6 +75,68 @@ def check_agent_key(agent_id: UUID, owner: str, agent_key: str) -> bool:
     address = w3.eth.account.recover_message(message, signature=agent_key)
 
     return address == owner
+
+
+def check_eip_712_signature(owner: str, agent_key: str) -> bool:
+    w3 = Web3()
+
+    # Example of EIP-712 typed data
+    typed_data = {
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+                {"name": "verifyingContract", "type": "address"}
+            ],
+            "Message": [
+                {"name": "sender", "type": "address"},
+                {"name": "content", "type": "string"}
+            ]
+        },
+        "primaryType": "Message",
+        "domain": {
+            "name": "MyDApp",
+            "version": "1",
+            "chainId": 1,  # Mainnet
+            "verifyingContract": "0xYourContractAddressHere"
+        },
+        "message": {
+            "sender": "0xYourEthereumAddressHere",
+            "content": "Hello, verify this message!"
+        }
+    }
+
+    # Signature from eth_signTypedData
+    signature = agent_key
+
+    # Hash the typed data
+    domain = typed_data['domain']
+    message = typed_data['message']
+
+    # Using Web3's utility function to hash the EIP-712 structured data
+    message_hash = Web3.solidity_keccak(
+        abi_types=['string', 'string', 'uint256', 'address', 'address', 'string'],
+        values=[
+            domain['name'],
+            domain['version'],
+            domain['chainId'],
+            domain['verifyingContract'],
+            message['sender'],
+            message['content']
+        ]
+    )
+
+    # Decode the signature into r, s, v components
+    sig = HexBytes(signature)
+    r = int.from_bytes(sig[0:32], byteorder='big')
+    s = int.from_bytes(sig[32:64], byteorder='big')
+    v = sig[64]
+
+    # Recover the address from the message hash and signature
+    recovered_address = w3.eth.account.recoverHash(message_hash, vrs=(v, r, s))
+
+    return recovered_address.lower() == owner.lower()
 
 
 def generate_predictable_key(agent_account_key: str) -> bytes:
