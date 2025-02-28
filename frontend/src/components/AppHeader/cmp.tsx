@@ -9,6 +9,7 @@ import { GoogleLogin, useGoogleLogin } from "@react-oauth/google";
 import { getAccount, getPortfolio, useOkto } from "@okto_web3/react-sdk";
 import toast from "react-hot-toast";
 import LoginDropdown from "@/components/ui/login-dropdown";
+import { WalletModal } from "@coinbase/onchainkit/wallet";
 
 export default function AppHeader() {
 	const navigationRouter = useNavigationRouter();
@@ -16,6 +17,7 @@ export default function AppHeader() {
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
 	const { isDesktop } = useBreakpoints();
 	const oktoClient = useOkto();
+	const [isOnchainkitModalOpen, setIsOnchainkitModalOpen] = useState(false);
 
 	const mobileDropdownMenuRef = useRef<HTMLDivElement>(null);
 
@@ -29,8 +31,7 @@ export default function AppHeader() {
 	}, []);
 
 	const loginWithGoogle = useGoogleLogin({
-		ux_mode: "popup",
-		scope: "openid email profile",
+		flow: "auth-code",
 		onSuccess: (data) => handleGoogleLogin(data),
 		onError: (error) => toast.error(`Google login failed: ${error}`),
 	});
@@ -61,6 +62,7 @@ export default function AppHeader() {
 	// eslint-disable-next-line
 	async function handleGoogleLogin(credentialResponse: any) {
 		try {
+			console.log(credentialResponse);
 			await toast.promise(
 				oktoClient.loginUsingOAuth({
 					idToken: credentialResponse.credential,
@@ -90,9 +92,6 @@ export default function AppHeader() {
 			// 	success: "Transaction success",
 			// });
 			// console.log(`Transfer jobId! Result: ${jobId}`);
-
-			// const signedMessage = await oktoClient.signMessage("TEST");
-			// console.log(signedMessage);
 		} catch (error) {
 			console.error("Authentication error:", error);
 		}
@@ -116,7 +115,11 @@ export default function AppHeader() {
 							))}
 						</div>
 						<GoogleLogin onSuccess={handleGoogleLogin} />
-						<LoginDropdown handleGoogleLogin={loginWithGoogle} handleWalletLogin={() => console.log("TODO")} />
+						<LoginDropdown
+							handleGoogleLogin={loginWithGoogle}
+							handleWalletLogin={() => setIsOnchainkitModalOpen(true)}
+						/>
+						<WalletModal isOpen={isOnchainkitModalOpen} onClose={() => setIsOnchainkitModalOpen(false)} />
 						<AccountButton />
 					</div>
 				</div>

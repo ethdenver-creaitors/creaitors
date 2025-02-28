@@ -2,7 +2,7 @@
 
 Create, deploy and interact with unstoppable and private AI Agents on Base.\
 Powered
-by [AgentKit](https://github.com/coinbase/agentkit) & [CDP solutions](https://www.coinbase.com/developer-platform),
+by [AgentKit](https://github.com/coinbase/agentkit) & [CDP solutions](https://www.coinbase.com/developer-platform), [Okto](https://okto.tech),
 [Aleph Cloud](https://aleph.im) and [LibertAI](https://libertai.io) 🚀
 
 ![banner.png](.github/assets/banner.png)
