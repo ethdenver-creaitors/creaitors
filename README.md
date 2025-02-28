@@ -14,17 +14,23 @@ by [AgentKit](https://github.com/coinbase/agentkit) & [CDP solutions](https://ww
 <table align="center">
   <tr>
     <td align="center">
-      <img src="https://github.com/gmolki.png" width="100" style="border-radius: 50%;">
+      <a href="https://github.com/gmolki">
+        <img src="https://github.com/gmolki.png" width="100" style="border-radius: 50%;">
+      </a>
       <br>
       <a href="https://github.com/gmolki"><strong>Gerard</strong></a>
     </td>
     <td align="center">
-      <img src="https://github.com/nesitor.png" width="100" style="border-radius: 50%;">
+      <a href="https://github.com/nesitor">
+        <img src="https://github.com/nesitor.png" width="100" style="border-radius: 50%;">
+      </a>
       <br>
       <a href="https://github.com/nesitor"><strong>Andres</strong></a>
     </td>
     <td align="center">
-      <img src="https://github.com/RezaRahemtola.png" width="100" style="border-radius: 50%;">
+      <a href="https://github.com/RezaRahemtola">
+        <img src="https://github.com/RezaRahemtola.png" width="100" style="border-radius: 50%;">
+      </a>
       <br>
       <a href="https://github.com/RezaRahemtola"><strong>Reza</strong></a>
     </td>
