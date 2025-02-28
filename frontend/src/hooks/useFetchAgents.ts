@@ -23,7 +23,7 @@ export default function useFetchAgents(): UseFetchAgentsReturn {
 					channels: ["test-creaitors"],
 					types: "test-creaitors-agent",
 				});
-				console.log(response.posts);
+
 				const parsedAgents = await Promise.all(
 					response.posts.map(async ({ item_hash, content }) => {
 						const imageStoreMessage = await alephClient.getMessage<MessageType.store>(content.image);

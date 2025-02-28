@@ -4,6 +4,7 @@ import { Agent } from "@/types/agent";
 import { useState } from "react";
 import { StyledAgentCard } from "./styles";
 import { Badge } from "../ui/badge";
+import useCachedImage from "@/hooks/useCachedImage";
 
 export function AgentCardSkeleton() {
 	return (
@@ -19,20 +20,22 @@ export function AgentCardSkeleton() {
 }
 
 type AgentCardLoadingProps = {
-	loading: true;
+	isLoadingAgent: true;
 	agent?: never;
 	onClick?: never;
 };
 
 type AgentCardLoadedProps = {
-	loading: false;
+	isLoadingAgent: false;
 	agent: Agent;
 	onClick: (agent: Agent) => void;
 };
 
 export type AgentCardProps = AgentCardLoadingProps | AgentCardLoadedProps;
 
-export default function AgentCard({ loading: isLoadingAgent, agent, onClick: handleClick }: AgentCardProps) {
+export default function AgentCard({ isLoadingAgent, agent, onClick: handleClick }: AgentCardProps) {
+	const cachedImage = useCachedImage(agent?.image);
+
 	const [isImageLoading, setIsImageLoading] = useState(true);
 
 	return (
@@ -41,7 +44,7 @@ export default function AgentCard({ loading: isLoadingAgent, agent, onClick: han
 				<div className="relative h-48 w-48 rounded-t-xl mb-0.5 group">
 					{!isLoadingAgent && (
 						<Image
-							src={agent.image}
+							src={cachedImage || agent.image}
 							alt="Agent image"
 							className="absolute min-h-full w-full object-cover rounded-xl"
 							width={0}

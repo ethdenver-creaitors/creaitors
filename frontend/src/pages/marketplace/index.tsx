@@ -86,7 +86,7 @@ export default function MarketplacePage() {
 			</div>
 
 			{/* Search & Filters */}
-			<div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
+			<div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-10">
 				<div className="flex items-center w-full max-w-sm space-x-2 rounded-lg border border-foreground-300 bg-gray-50 px-3.5 py-2">
 					<SearchIcon className="h-4 w-4" />
 					<Input
@@ -115,10 +115,10 @@ export default function MarketplacePage() {
 			{/* Agents Grid */}
 			<div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-24 mb-12">
 				{isLoadingAgents ? (
-					Array.from({ length: 10 }).map((_, index) => <AgentCard key={index} loading={true} />)
+					Array.from({ length: 8 }).map((_, index) => <AgentCard key={index} isLoadingAgent={true} />)
 				) : filteredAgents.length > 0 ? (
 					filteredAgents.map((agent) => (
-						<AgentCard key={agent.id} agent={agent} onClick={handleAgentCardClick} loading={false} />
+						<AgentCard key={agent.id} agent={agent} onClick={handleAgentCardClick} isLoadingAgent={false} />
 					))
 				) : (
 					<p className="text-center col-span-full text-gray-500">No agents found</p>
