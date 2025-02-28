@@ -15,9 +15,6 @@ export default function LandingPage() {
 
 	return (
 		<PageContainer>
-			<div className="-z-10 absolute h-full w-full">
-				<div className="relative h-full w-full [background-size:32px_32px] [mask-image:radial-gradient(ellipse_40%_33%_at_50%_33%,#000_70%,transparent_100%)]" />
-			</div>
 			<div className="container relative mx-auto px-4 py-20 sm:px-6 lg:px-8">
 				<div className="lg:grid lg:gap-x-16 xl:gap-x-24">
 					{/* Text Content */}

@@ -29,6 +29,7 @@ export default function App({ Component, pageProps }: AppProps) {
 						<div className="absolute top-0 -z-10 h-full w-full bg-background">
 							<div className="absolute bottom-auto left-auto right-0 top-0 h-[500px] w-[500px] -translate-x-[30%] translate-y-[20%] rounded-full bg-primary opacity-30 blur-[80px]"></div>
 							<div className="bottom-gradient"></div>
+							<div className="pointed-grid" />
 						</div>
 						{/* Page Content */}
 						<main className="min-h-screen pt-[var(--header-height)] md:pt-[var(--header-height-desktop)]">
