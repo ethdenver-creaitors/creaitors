@@ -20,7 +20,7 @@ export type UploadAgentFormValues = {
 	category?: string;
 };
 
-export default function UploadAgentForm() {
+export default function UploadAgentForm({ onUploadSuccess: handleUploadSuccess }: { onUploadSuccess: () => void }) {
 	const defaultValues: UploadAgentFormValues = useMemo(() => {
 		return {
 			name: undefined,
@@ -88,6 +88,8 @@ export default function UploadAgentForm() {
 				error: "Failed to upload agent",
 			},
 		);
+
+		handleUploadSuccess();
 	};
 
 	return (

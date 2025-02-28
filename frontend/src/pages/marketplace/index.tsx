@@ -12,11 +12,13 @@ import AgentList from "@/components/AgentList";
 
 export default function MarketplacePage() {
 	const navigationRouter = useNavigationRouter();
-	const { agents, isLoading: isLoadingAgents } = useFetchAgents();
+	const { agents, isLoading, fetchAgents } = useFetchAgents();
 
 	const [isMounted, setIsMounted] = useState(false);
 	const [selectedAgent, setSelectedAgent] = useState<Agent>();
 	const [sidePanelContentType, setSidePanelContentType] = useState<"agent" | "upload-agent">();
+
+	const isLoadingAgents = useMemo(() => !agents && isLoading, [agents, isLoading]);
 
 	const handleAgentCardClick = useCallback((agent: Agent) => {
 		setSelectedAgent(agent);
@@ -31,6 +33,11 @@ export default function MarketplacePage() {
 	const handleUploadAgent = useCallback(() => {
 		setSidePanelContentType("upload-agent");
 	}, []);
+
+	const handleUploadAgentSuccess = useCallback(() => {
+		handleSidePanelClose();
+		fetchAgents();
+	}, [fetchAgents, handleSidePanelClose]);
 
 	const handleDeployAgent = useCallback(
 		(agent: Agent) => {
@@ -52,11 +59,11 @@ export default function MarketplacePage() {
 					),
 				};
 			case "upload-agent":
-				return { title: "Upload AI Agent", element: <UploadAgentForm /> };
+				return { title: "Upload AI Agent", element: <UploadAgentForm onUploadSuccess={handleUploadAgentSuccess} /> };
 			default:
 				return { title: "Unknown", element: null };
 		}
-	}, [sidePanelContentType, selectedAgent, handleDeployAgent]);
+	}, [sidePanelContentType, selectedAgent, handleUploadAgentSuccess, handleDeployAgent]);
 
 	useEffect(() => {
 		setIsMounted(true);
