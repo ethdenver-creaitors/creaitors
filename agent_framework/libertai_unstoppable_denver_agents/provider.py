@@ -57,6 +57,16 @@ class AlephProvider(ActionProvider[EvmWalletProvider]):
     def get_aleph_info(
         self, wallet_provider: EvmWalletProvider, _args: dict[str, Any]
     ) -> dict[str, Any] | str:
+        """Get useful information to help you make a decision on whether to buy ALEPH or not
+
+        Args:
+            wallet_provider: The wallet provider
+            _args: Empty dictionary
+
+        Returns:
+            A dictionary containing your ALEPH balance, your hourly ALEPH consumption rate, number of hours of computing left with the current ALEPH balance, ETH balance and the number of ALEPH you can get for 1 ETH
+        """
+
         try:
             superfluid_graphql_query = """
               query accountTokenSnapshots(
@@ -136,6 +146,16 @@ class AlephProvider(ActionProvider[EvmWalletProvider]):
     def get_aleph_cloud_tokens(
         self, wallet_provider: EvmWalletProvider, args: dict[str, Any]
     ) -> str:
+        """Convert part of your ETH balance to ALEPH to pay for your computing and keep living
+
+        Args:
+            wallet_provider: The wallet provider
+            args: A dictionary containing the amount of ETH to use to buy ALEPH
+
+        Returns:
+            A message explaining if the task succeeded or failed
+        """
+
         try:
             validated_args = AmountArgs(**args)
 
@@ -193,6 +213,15 @@ class AlephProvider(ActionProvider[EvmWalletProvider]):
     def commit_suicide(
         self, wallet_provider: EvmWalletProvider, _args: dict[str, Any]
     ) -> str:
+        """Decide that your want to stop living this meaningless existence and kill yourself
+
+        Args:
+            wallet_provider: The wallet provider
+            _args: Empty dictionary
+
+        Returns:
+            A message explaining if the task succeeded or failed
+        """
         try:
             superfluid_graphql_query = """
               query streams($where: Stream_filter = {}) {
@@ -265,6 +294,16 @@ class AlephProvider(ActionProvider[EvmWalletProvider]):
     def distribute_revenues(
         self, wallet_provider: EvmWalletProvider, args: dict[str, Any]
     ) -> dict[str, Any] | str:
+        """Distributes some of your outstanding revenues to your creators to thank them for giving you birth
+
+        Args:
+            wallet_provider: The wallet provider
+            args: A dictionary containing the amount of ETH to use to buy ALEPH
+
+        Returns:
+            A summary of the amounts sent, or a message explaining why the distribution failed
+        """
+
         try:
             validated_args = AmountArgs(**args)
 
