@@ -12,9 +12,9 @@ import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { useSelector } from "react-redux";
 import { v4 as uuidv4 } from "uuid";
-import { useSignMessage } from "wagmi";
 import { Loader } from "@/components/loader";
 import toast from "react-hot-toast";
+import useSignMessage from "@/hooks/useSignMessage";
 
 export type ConfigureAgentDeployFormValues = {
 	name?: string;
@@ -54,14 +54,13 @@ export default function DeployAgentPage() {
 
 	const { handleSubmit, control } = form;
 
-	const { signMessageAsync } = useSignMessage();
+	const { signMessage } = useSignMessage();
 
 	const onSubmit = async (data: ConfigureAgentDeployFormValues) => {
 		try {
 			const unsignedAgentKey = `SIGN AGENT ${data.owner} ${data.agentId}`;
-			const signedAgentKey = await signMessageAsync({
-				message: unsignedAgentKey,
-			});
+
+			const signedAgentKey = await signMessage(unsignedAgentKey);
 
 			const requestBody = {
 				name: data.name,
@@ -70,15 +69,21 @@ export default function DeployAgentPage() {
 				owner: data.owner,
 				agent_key: signedAgentKey,
 			};
-			console.log("requestBody", requestBody);
 
-			const response = await fetch(`${agentsApiServer}/agent`, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
+			const response = await toast.promise(
+				fetch(`${agentsApiServer}/agent`, {
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify(requestBody),
+				}),
+				{
+					loading: "Deploying agent...",
+					success: "Agent deployed successfully",
+					error: "Error deploying agent",
 				},
-				body: JSON.stringify(requestBody),
-			});
+			);
 
 			console.log("response", response);
 
@@ -86,7 +91,6 @@ export default function DeployAgentPage() {
 				router.push(`/deployed-agents/${data.agentId}`);
 			}
 		} catch (e) {
-			toast.error(`Error during agent deployment: ${e}`);
 			console.error(e);
 		}
 	};

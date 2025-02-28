@@ -10,6 +10,7 @@ import { AppState } from "@/store/store";
 import { Textarea } from "../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { agentCategories } from "@/utils/constants";
+import toast from "react-hot-toast";
 
 export type UploadAgentFormValues = {
 	name?: string;
@@ -42,30 +43,51 @@ export default function UploadAgentForm() {
 		if (!alephAccount) return;
 		if (!(alephClient instanceof AuthenticatedAlephHttpClient)) return;
 
-		const storeSourceCodeResponse = await alephClient.createStore({
-			channel: "test-creaitors",
-			fileObject: data.sourceCode!,
-			storageEngine: ItemType.ipfs,
-		});
-
-		const storeImageResponse = await alephClient.createStore({
-			channel: "test-creaitors",
-			fileObject: data.image!,
-			storageEngine: ItemType.ipfs,
-		});
-
-		await alephClient.createPost({
-			channel: "test-creaitors",
-			address: alephAccount.address,
-			postType: "test-creaitors-agent",
-			content: {
-				name: data.name,
-				description: data.description,
-				category: data.category,
-				source_code_hash: storeSourceCodeResponse.item_hash,
-				image: storeImageResponse.item_hash,
+		const storeSourceCodeResponse = await toast.promise(
+			alephClient.createStore({
+				channel: "test-creaitors",
+				fileObject: data.sourceCode!,
+				storageEngine: ItemType.ipfs,
+			}),
+			{
+				loading: "Uploading source code...",
+				success: "Source code uploaded",
+				error: "Failed to upload source code",
 			},
-		});
+		);
+
+		const storeImageResponse = await toast.promise(
+			alephClient.createStore({
+				channel: "test-creaitors",
+				fileObject: data.image!,
+				storageEngine: ItemType.ipfs,
+			}),
+			{
+				loading: "Uploading image...",
+				success: "Image uploaded",
+				error: "Failed to upload image",
+			},
+		);
+
+		await toast.promise(
+			alephClient.createPost({
+				channel: "test-creaitors",
+				address: alephAccount.address,
+				postType: "test-creaitors-agent",
+				content: {
+					name: data.name,
+					description: data.description,
+					category: data.category,
+					source_code_hash: storeSourceCodeResponse.item_hash,
+					image: storeImageResponse.item_hash,
+				},
+			}),
+			{
+				loading: "Uploading agent...",
+				success: "Agent uploaded",
+				error: "Failed to upload agent",
+			},
+		);
 	};
 
 	return (

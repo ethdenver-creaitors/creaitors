@@ -12,9 +12,11 @@ import {
 import { useCallback, useMemo } from "react";
 import { base } from "viem/chains";
 import { Button } from "../ui/button";
-import { useBalance, useSignMessage } from "wagmi";
+import { useBalance } from "wagmi";
 import { Separator } from "../ui/separator";
 import { agentsApiServer } from "@/utils/constants";
+import useSignMessage from "@/hooks/useSignMessage";
+import toast from "react-hot-toast";
 
 export type DeployedAgentDetailsProps = {
 	deployedAgent: DeployedAgent;
@@ -76,13 +78,11 @@ export default function DeployedAgentDetails({ deployedAgent, updateAgentDetails
 		return agentWalletBalance >= deployedAgent.required_tokens;
 	}, [agentWalletBalance, deployedAgent]);
 
-	const { signMessageAsync } = useSignMessage();
+	const { signMessage } = useSignMessage();
 
 	const handleFinishFundWalletStep = useCallback(async () => {
 		const unsignedAgentKey = `SIGN AGENT ${deployedAgent.owner} ${deployedAgent.id}`;
-		const signedAgentKey = await signMessageAsync({
-			message: unsignedAgentKey,
-		});
+		const signedAgentKey = await signMessage(unsignedAgentKey);
 
 		const requestBody = {
 			name: deployedAgent.name,
@@ -94,22 +94,27 @@ export default function DeployedAgentDetails({ deployedAgent, updateAgentDetails
 
 		console.log("requestBody", requestBody);
 
-		// return;
-
-		const response = await fetch(`${agentsApiServer}/agent/deploy`, {
-			method: "POST",
-			headers: {
-				"Content-Type": "application/json",
+		const response = await toast.promise(
+			fetch(`${agentsApiServer}/agent/deploy`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(requestBody),
+			}),
+			{
+				loading: "Configuring agent deployment...",
+				success: "Agent deployment configured successfully",
+				error: "Error configuring agent deployment",
 			},
-			body: JSON.stringify(requestBody),
-		});
+		);
 
 		const data = await response.json();
 
 		console.log("data", data);
 
 		updateAgentDetails(deployedAgent.id);
-	}, [deployedAgent, signMessageAsync, updateAgentDetails]);
+	}, [deployedAgent, signMessage, updateAgentDetails]);
 
 	const AgentWallet = useMemo(() => {
 		return (
