@@ -1,2 +1,32 @@
-# creaitors
-Create, deploy and interact with unstoppable and private AI Agents on Base, powered by AgentKit &amp; CDP solutions, Aleph Cloud and LibertAI 🚀
+# 🧠 CreAItors
+
+Create, deploy and interact with unstoppable and private AI Agents on Base.\
+Powered
+by [AgentKit](https://github.com/coinbase/agentkit) & [CDP solutions](https://www.coinbase.com/developer-platform),
+[Aleph Cloud](https://aleph.im) and [LibertAI](https://libertai.io) 🚀
+
+![banner.png](.github/assets/banner.png)
+
+<div align="center">
+  <h2>Made with ❤️ by</h2>
+</div>
+
+<table align="center">
+  <tr>
+    <td align="center">
+      <img src="https://github.com/gmolki.png" width="100" style="border-radius: 50%;">
+      <br>
+      <a href="https://github.com/gmolki"><strong>Gerard</strong></a>
+    </td>
+    <td align="center">
+      <img src="https://github.com/nesitor.png" width="100" style="border-radius: 50%;">
+      <br>
+      <a href="https://github.com/nesitor"><strong>Andres</strong></a>
+    </td>
+    <td align="center">
+      <img src="https://github.com/RezaRahemtola.png" width="100" style="border-radius: 50%;">
+      <br>
+      <a href="https://github.com/RezaRahemtola"><strong>Reza</strong></a>
+    </td>
+  </tr>
+</table>
