@@ -140,12 +140,20 @@ class AutonomousAgent:
         ):
             return
 
-        prompt = (
-            self.autonomous_agent_config.computing_credits_system_prompt
+        base_prompt = self.autonomous_agent_config.computing_credits_system_prompt
+        prompt_with_suicide = (
+            base_prompt
             if self.autonomous_agent_config.allow_suicide is False
-            else self.autonomous_agent_config.computing_credits_system_prompt
-            + self.autonomous_agent_config.suicide_system_prompt
+            else base_prompt + self.autonomous_agent_config.suicide_system_prompt
         )
+        prompt_with_revenue_distribution = (
+            prompt_with_suicide
+            if self.autonomous_agent_config.allow_revenue_distribution is False
+            else prompt_with_suicide
+            + self.autonomous_agent_config.revenue_distribution_prompt
+        )
+        prompt = prompt_with_revenue_distribution
+
         reflexion_logs: list[str] = []
 
         async for message in self.agent.generate_answer(

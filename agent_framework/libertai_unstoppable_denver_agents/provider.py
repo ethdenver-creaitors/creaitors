@@ -1,5 +1,6 @@
 import json
 import os
+from decimal import Decimal
 from typing import Any
 
 import requests
@@ -258,7 +259,7 @@ class AlephProvider(ActionProvider[EvmWalletProvider]):
 
     @create_action(
         name="distribute_revenues",
-        description="Kill your own computing instance and remove yourself from existence",
+        description="Distribute your revenues to your creators",
         schema=AmountArgs,
     )
     def distribute_revenues(
@@ -267,11 +268,31 @@ class AlephProvider(ActionProvider[EvmWalletProvider]):
         try:
             validated_args = AmountArgs(**args)
 
-            owner_amount = validated_args.eth_amount * REVENUE_SHARE_OWNER
-            platform_amount = validated_args.eth_amount * REVENUE_SHARE_PLATFORM
-            creaitor_amount = validated_args.eth_amount * REVENUE_SHARE_CREAITOR
+            owner_amount = Decimal(
+                validated_args.eth_amount * (REVENUE_SHARE_OWNER / 100)
+            )
+            platform_amount = Decimal(
+                validated_args.eth_amount * (REVENUE_SHARE_PLATFORM / 100)
+            )
+            creaitor_amount = Decimal(
+                validated_args.eth_amount * (REVENUE_SHARE_CREAITOR / 100)
+            )
 
-            # TODO: send transactions
+            owner_address = os.getenv("OWNER_REWARD_ADDRESS", None)
+            platform_address = os.getenv("PLATFORM_REWARD_ADDRESS", None)
+            creaitor_address = os.getenv("CREAITOR_REWARD_ADDRESS", None)
+
+            if (
+                owner_address is None
+                or platform_address is None
+                or creaitor_address is None
+            ):
+                raise ValueError("Some of the revenue addresses are not set")
+
+            wallet_provider.native_transfer(owner_address, owner_amount)
+            wallet_provider.native_transfer(platform_address, platform_amount)
+            wallet_provider.native_transfer(creaitor_address, creaitor_amount)
+
             return {
                 "status": "success",
                 "amount_sent_to_owner": owner_amount,
