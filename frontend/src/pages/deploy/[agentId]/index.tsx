@@ -15,6 +15,8 @@ import { v4 as uuidv4 } from "uuid";
 import { Loader } from "@/components/loader";
 import toast from "react-hot-toast";
 import useSignMessage from "@/hooks/useSignMessage";
+import CreaitorsClient from "@/lib/creaitorsClient";
+import { Address } from "viem";
 
 export type ConfigureAgentDeployFormValues = {
 	name?: string;
@@ -24,6 +26,8 @@ export type ConfigureAgentDeployFormValues = {
 };
 
 export default function DeployAgentPage() {
+	const creaitorsClient = useMemo(() => new CreaitorsClient(agentsApiServer), []);
+
 	const router = useRouter();
 	const {
 		query: { agentId },
@@ -58,32 +62,27 @@ export default function DeployAgentPage() {
 
 	const onSubmit = async (data: ConfigureAgentDeployFormValues) => {
 		try {
-			const unsignedAgentKey = `SIGN AGENT ${data.owner} ${data.agentId}`;
+			const { name, agentId, owner, agentHash } = data;
+
+			if (!name || !agentId || !owner || !agentHash) return toast.error("Please fill all fields");
+
+			const unsignedAgentKey = `SIGN AGENT ${owner} ${agentId}`;
 
 			const signedAgentKey = await signMessage(unsignedAgentKey);
 
 			const requestBody = {
-				name: data.name,
-				agent_id: data.agentId,
-				agent_hash: data.agentHash,
-				owner: data.owner,
+				name: name,
+				agent_id: agentId,
+				agent_hash: agentHash,
+				owner: owner as Address,
 				agent_key: signedAgentKey,
 			};
 
-			const response = await toast.promise(
-				fetch(`${agentsApiServer}/agent`, {
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify(requestBody),
-				}),
-				{
-					loading: "Deploying agent...",
-					success: "Agent deployed successfully",
-					error: "Error deploying agent",
-				},
-			);
+			const response = await toast.promise(creaitorsClient.createAgent(requestBody), {
+				loading: "Deploying agent...",
+				success: "Agent deployed successfully",
+				error: "Error deploying agent",
+			});
 
 			console.log("response", response);
 

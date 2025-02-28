@@ -8,6 +8,7 @@ import { agentsApiServer } from "@/utils/constants";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader } from "@/components/loader";
+import CreaitorsClient from "@/lib/creaitorsClient";
 
 export type ConfigureAgentDeployFormValues = {
 	name?: string;
@@ -17,6 +18,8 @@ export type ConfigureAgentDeployFormValues = {
 };
 
 export default function DeployAgentsPage() {
+	const creaitorsClient = useMemo(() => new CreaitorsClient(agentsApiServer), []);
+
 	const router = useRouter();
 	const {
 		query: { agentDeployId: agentDeployIdRaw },
@@ -26,17 +29,20 @@ export default function DeployAgentsPage() {
 
 	const [deployedAgent, setDeployedAgent] = useState<DeployedAgent>();
 
-	const handleFetchDeployedAgent = useCallback(async (id: string) => {
-		try {
-			const response = await fetch(`${agentsApiServer}/agent/${id}`);
-			const data = await response.json();
-			console.log("fetched deployed agent", data);
+	const handleFetchDeployedAgent = useCallback(
+		async (id: string) => {
+			try {
+				const response = await creaitorsClient.getAgent(id);
+				const data = await response.json();
+				console.log("fetched deployed agent", data);
 
-			setDeployedAgent(data);
-		} catch (e) {
-			console.error(e);
-		}
-	}, []);
+				setDeployedAgent(data);
+			} catch (e) {
+				console.error(e);
+			}
+		},
+		[creaitorsClient],
+	);
 
 	const requiresUserAction = useCallback((agent: DeployedAgent) => {
 		if (!agent) return false;

@@ -17,6 +17,7 @@ import { Separator } from "../ui/separator";
 import { agentsApiServer } from "@/utils/constants";
 import useSignMessage from "@/hooks/useSignMessage";
 import toast from "react-hot-toast";
+import CreaitorsClient from "@/lib/creaitorsClient";
 
 export type DeployedAgentDetailsProps = {
 	deployedAgent: DeployedAgent;
@@ -24,6 +25,8 @@ export type DeployedAgentDetailsProps = {
 };
 
 export default function DeployedAgentDetails({ deployedAgent, updateAgentDetails }: DeployedAgentDetailsProps) {
+	const creaitorsClient = useMemo(() => new CreaitorsClient(agentsApiServer), []);
+
 	const steps = useMemo(
 		() => ({
 			[DeployedAgentStatus.PENDING_FUND]: {
@@ -94,27 +97,18 @@ export default function DeployedAgentDetails({ deployedAgent, updateAgentDetails
 
 		console.log("requestBody", requestBody);
 
-		const response = await toast.promise(
-			fetch(`${agentsApiServer}/agent/deploy`, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify(requestBody),
-			}),
-			{
-				loading: "Configuring agent deployment...",
-				success: "Agent deployment configured successfully",
-				error: "Error configuring agent deployment",
-			},
-		);
+		const response = await toast.promise(creaitorsClient.deployAgent(requestBody), {
+			loading: "Configuring agent deployment...",
+			success: "Agent deployment configured successfully",
+			error: "Error configuring agent deployment",
+		});
 
 		const data = await response.json();
 
 		console.log("data", data);
 
 		updateAgentDetails(deployedAgent.id);
-	}, [deployedAgent, signMessage, updateAgentDetails]);
+	}, [creaitorsClient, deployedAgent, signMessage, updateAgentDetails]);
 
 	const AgentWallet = useMemo(() => {
 		return (
