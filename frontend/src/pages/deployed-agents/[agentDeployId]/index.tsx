@@ -27,12 +27,15 @@ export default function DeployAgentsPage() {
 	const [deployedAgent, setDeployedAgent] = useState<DeployedAgent>();
 
 	const handleFetchDeployedAgent = useCallback(async (id: string) => {
-		const response = await fetch(`${agentsApiServer}/agent/${id}`);
-		const data = await response.json();
+		try {
+			const response = await fetch(`${agentsApiServer}/agent/${id}`);
+			const data = await response.json();
+			console.log("fetched deployed agent", data);
 
-		console.log("fetched deployed agent", data);
-
-		setDeployedAgent(data);
+			setDeployedAgent(data);
+		} catch (e) {
+			console.error(e);
+		}
 	}, []);
 
 	const requiresUserAction = useCallback((agent: DeployedAgent) => {
