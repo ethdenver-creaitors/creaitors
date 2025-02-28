@@ -9,6 +9,7 @@ import { Provider as ReduxProvider } from "react-redux";
 import ChainProvider from "@/components/ChainProvider";
 import WalletEventsListener from "@/components/WalletEventListener";
 import AppFooter from "@/components/AppFooter";
+import { Toaster } from "react-hot-toast";
 
 export default function App({ Component, pageProps }: AppProps) {
 	return (
@@ -35,6 +36,7 @@ export default function App({ Component, pageProps }: AppProps) {
 						<main className="min-h-screen pt-[var(--header-height)] md:pt-[var(--header-height-desktop)]">
 							<Component {...pageProps} />
 						</main>
+						<Toaster position="bottom-center" reverseOrder={false} />
 						{/* Footer */}
 						<AppFooter />
 					</div>
