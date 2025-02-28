@@ -11,7 +11,7 @@ export default function ChainProvider({ children }: Readonly<ChainProviderProps>
 	const config: AppConfig = {
 		appearance: {
 			name: "CreAItors",
-			logo: "https://picsum.photos/200",
+			logo: "https://raw.githubusercontent.com/ethdenver-creaitors/creaitors/refs/heads/main/.github/assets/logo.webp",
 			mode: "auto",
 			theme: "hacker",
 		},
