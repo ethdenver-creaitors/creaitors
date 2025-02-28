@@ -1,16 +1,20 @@
 import Image from "next/image";
 import AccountButton from "../AccountButton";
-import { useRouter as useNavigationRouter, usePathname } from "next/navigation";
-import { useCallback, useMemo, useState, useEffect, useRef } from "react";
+import { usePathname, useRouter as useNavigationRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Menu, X } from "lucide-react";
 import useBreakpoints from "@/hooks/breakpoints/useBreakpoints";
 import { NavigationLink } from "./styles";
+import { GoogleLogin } from "@react-oauth/google";
+import { getAccount, getPortfolio, useOkto } from "@okto_web3/react-sdk";
+import toast from "react-hot-toast";
 
 export default function AppHeader() {
 	const navigationRouter = useNavigationRouter();
 	const pathname = usePathname();
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
 	const { isDesktop } = useBreakpoints();
+	const oktoClient = useOkto();
 
 	const mobileDropdownMenuRef = useRef<HTMLDivElement>(null);
 
@@ -46,6 +50,46 @@ export default function AppHeader() {
 		};
 	}, [isMenuOpen]);
 
+	// eslint-disable-next-line
+	async function handleGoogleLogin(credentialResponse: any) {
+		try {
+			await toast.promise(
+				oktoClient.loginUsingOAuth({
+					idToken: credentialResponse.credential,
+					provider: "google",
+				}),
+				{
+					loading: "Connecting with Google",
+					success: "Successfully connected",
+					error: "An error occurred during the connection",
+				},
+			);
+
+			const userAccounts = await getAccount(oktoClient);
+			console.log(userAccounts);
+			const userPortfolio = await getPortfolio(oktoClient);
+			console.log(userPortfolio);
+
+			// const transferParams = {
+			// 	amount: BigInt("1000000000000000"), // 0.001 ETH
+			// 	recipient: "0x7569b2C9294BB79744E5d201F5fCA42Dc02d7A9f" as `0x${string}`,
+			// 	token: "" as `0x${string}`, // Empty string for native token
+			// 	caip2Id: "eip155:8453", // Base chain ID
+			// };
+			// const jobId = await toast.promise(tokenTransfer(oktoClient, transferParams), {
+			// 	loading: "Sending transaction",
+			// 	error: "Transaction failed",
+			// 	success: "Transaction success",
+			// });
+			// console.log(`Transfer jobId! Result: ${jobId}`);
+
+			// const signedMessage = await oktoClient.signMessage("TEST");
+			// console.log(signedMessage);
+		} catch (error) {
+			console.error("Authentication error:", error);
+		}
+	}
+
 	return (
 		<section className="z-30 bg-background fixed w-full min-h-[var(--header-height)] flex items-center px-6 border-b-2 shadow-[0_0_10px_hsl(var(--foreground))]">
 			{isDesktop ? (
@@ -63,7 +107,7 @@ export default function AppHeader() {
 								</NavigationLink>
 							))}
 						</div>
-
+						<GoogleLogin onSuccess={handleGoogleLogin} />
 						<AccountButton />
 					</div>
 				</div>
