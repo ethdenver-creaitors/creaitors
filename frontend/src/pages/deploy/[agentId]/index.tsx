@@ -17,6 +17,7 @@ import toast from "react-hot-toast";
 import useSignMessage from "@/hooks/useSignMessage";
 import CreaitorsClient from "@/lib/creaitorsClient";
 import { Address } from "viem";
+import { useOkto } from "@okto_web3/react-sdk";
 
 export type ConfigureAgentDeployFormValues = {
 	name?: string;
@@ -27,6 +28,7 @@ export type ConfigureAgentDeployFormValues = {
 
 export default function DeployAgentPage() {
 	const creaitorsClient = useMemo(() => new CreaitorsClient(agentsApiServer), []);
+	const oktoClient = useOkto();
 
 	const router = useRouter();
 	const {
@@ -68,7 +70,17 @@ export default function DeployAgentPage() {
 
 			const unsignedAgentKey = `SIGN AGENT ${owner} ${agentId}`;
 
-			const signedAgentKey = await signMessage(unsignedAgentKey);
+			// TODO: real okto check
+			let signedAgentKey: `0x${string}` = "0x";
+			if (true) {
+				signedAgentKey = (await toast.promise(oktoClient.signMessage(unsignedAgentKey), {
+					loading: "Signing message with Okto",
+					success: "Message signed successfully",
+					error: "Error signing message with Okto",
+				})) as `0x${string}`;
+			} else {
+				signedAgentKey = await signMessage(unsignedAgentKey);
+			}
 
 			const requestBody = {
 				name: name,

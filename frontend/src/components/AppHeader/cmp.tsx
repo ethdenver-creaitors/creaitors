@@ -5,9 +5,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Menu, X } from "lucide-react";
 import useBreakpoints from "@/hooks/breakpoints/useBreakpoints";
 import { NavigationLink } from "./styles";
-import { GoogleLogin } from "@react-oauth/google";
+import { GoogleLogin, useGoogleLogin } from "@react-oauth/google";
 import { getAccount, getPortfolio, useOkto } from "@okto_web3/react-sdk";
 import toast from "react-hot-toast";
+import LoginDropdown from "@/components/ui/login-dropdown";
 
 export default function AppHeader() {
 	const navigationRouter = useNavigationRouter();
@@ -26,6 +27,13 @@ export default function AppHeader() {
 			{ name: "Marketplace", path: "/marketplace/" },
 		];
 	}, []);
+
+	const loginWithGoogle = useGoogleLogin({
+		ux_mode: "popup",
+		scope: "openid email profile",
+		onSuccess: (data) => handleGoogleLogin(data),
+		onError: (error) => toast.error(`Google login failed: ${error}`),
+	});
 
 	// Close the menu when switching to desktop
 	useEffect(() => {
@@ -108,6 +116,7 @@ export default function AppHeader() {
 							))}
 						</div>
 						<GoogleLogin onSuccess={handleGoogleLogin} />
+						<LoginDropdown handleGoogleLogin={loginWithGoogle} handleWalletLogin={() => console.log("TODO")} />
 						<AccountButton />
 					</div>
 				</div>
