@@ -82,7 +82,7 @@ function FeatureCards() {
 				{features.map((feature) => (
 					<div
 						key={feature.title}
-						className="relative overflow-hidden rounded-xl border bg-card/50 backdrop-blur-sm p-6 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+						className="relative overflow-hidden rounded-xl border bg-card/50 backdrop-blur-sm p-6 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer"
 					>
 						<div className="flex items-start gap-4">
 							<div className="rounded-full bg-purple-500/10 p-3">
