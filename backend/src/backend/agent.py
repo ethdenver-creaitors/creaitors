@@ -65,7 +65,7 @@ def generate_fixed_env_variables(private_key: str, creator_address: str, owner_a
 def generate_env_file_content(injected_content: str, env_variables: Optional[Dict[str, str]] = None) -> bytes:
     content = injected_content
     if env_variables:
-        for name, value in env_variables:
+        for name, value in env_variables.items():
             content += f"{name}={value}"
 
     return content.encode("utf-8")

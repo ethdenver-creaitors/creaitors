@@ -38,29 +38,37 @@ class AgentOrchestration(BaseModel):
     ssh_public_key: str
     creator_wallet: Optional[str] = None
     env_variables: Dict[str, str] = {}
+    running: bool = False
 
     class Config:
         arbitrary_types_allowed = True
 
     async def deploy(self):
-        # Refresh agent post from the network
-        agent = await get_agent(str(self.deployment.id))
-        self.deployment = agent
-        # Get agent creator wallet
-        if not self.creator_wallet:
-            async with AuthenticatedAlephHttpClient(
-                    account=self.aleph_account, api_server=config.ALEPH_API_URL
-            ) as client:
-                agent_message = await client.get_message(self.deployment.agent_hash, with_status=False)
-                if not agent_message:
-                    raise ValueError(f"Agent with hash {self.deployment.agent_hash} not found")
+        try:
+            if not self.running:
+                self.running = True
+                # Refresh agent post from the network
+                agent = await get_agent(str(self.deployment.id))
+                self.deployment = agent
+                # Get agent creator wallet
+                if not self.creator_wallet:
+                    async with AuthenticatedAlephHttpClient(
+                            account=self.aleph_account, api_server=config.ALEPH_API_URL
+                    ) as client:
+                        agent_message = await client.get_message(self.deployment.agent_hash, with_status=False)
+                        if not agent_message:
+                            raise ValueError(f"Agent with hash {self.deployment.agent_hash} not found")
 
-                if not isinstance(agent_message, PostMessage):
-                    raise ValueError(f"Hash {self.deployment.agent_hash} isn't an agent")
+                        if not isinstance(agent_message, PostMessage):
+                            raise ValueError(f"Hash {self.deployment.agent_hash} isn't an agent")
 
-                self.creator_wallet = agent_message.content.address
+                        self.creator_wallet = agent_message.content.address
 
-        await self._continue_actions()
+                await self._continue_actions()
+        except:
+            raise
+        finally:
+            self.running = False
 
     async def _continue_actions(self):
         print(f"Agent is in {self.deployment.status} status")
