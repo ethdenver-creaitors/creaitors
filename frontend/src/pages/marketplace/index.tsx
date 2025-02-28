@@ -54,6 +54,25 @@ export default function MarketplacePage() {
 		});
 	}, [agents, searchQuery, selectedCategory]);
 
+	const sidePanelContent = useMemo(() => {
+		switch (sidePanelContentType) {
+			case "agent":
+				return {
+					title: "AI Agent Details",
+					element: (
+						<div className="flex flex-col gap-4">
+							<AgentDetails agent={selectedAgent!} />
+							<Button onClick={() => handleDeployAgent(selectedAgent!)}>Deploy Agent</Button>
+						</div>
+					),
+				};
+			case "upload-agent":
+				return { title: "Upload AI Agent", element: <UploadAgentForm /> };
+			default:
+				return { title: "Unknown", element: null };
+		}
+	}, [sidePanelContentType, selectedAgent, handleDeployAgent]);
+
 	useEffect(() => {
 		setIsMounted(true);
 	}, []);
@@ -116,19 +135,8 @@ export default function MarketplacePage() {
 
 			{/* Side Panel */}
 			{isMounted && (
-				<SidePanel
-					isOpen={!!sidePanelContentType}
-					onClose={handleSidePanelClose}
-					title={sidePanelContentType === "agent" ? "AI Agent Details" : "Upload AI Agent"}
-				>
-					{sidePanelContentType === "agent" ? (
-						<div className="flex flex-col gap-4">
-							<AgentDetails agent={selectedAgent!} />
-							<Button onClick={() => handleDeployAgent(selectedAgent!)}>Deploy Agent</Button>
-						</div>
-					) : (
-						<UploadAgentForm />
-					)}
+				<SidePanel isOpen={!!sidePanelContentType} onClose={handleSidePanelClose} title={sidePanelContent.title}>
+					{sidePanelContent.element}
 				</SidePanel>
 			)}
 		</PageContainer>

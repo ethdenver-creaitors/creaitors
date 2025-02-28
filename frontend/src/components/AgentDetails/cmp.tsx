@@ -8,8 +8,8 @@ export type AgentDetailsProps = {
 
 export default function AgentDetails({ agent }: AgentDetailsProps) {
 	return (
-		<div className="flex gap-4">
-			<div className="max-w-[50%]">
+		<div className="flex flex-col lg:flex-row gap-4">
+			<div className="w-full lg:max-w-[50%]">
 				<Image
 					src={agent.image}
 					alt="Agent image"

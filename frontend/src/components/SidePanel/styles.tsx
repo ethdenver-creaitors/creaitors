@@ -21,51 +21,51 @@ export const StyledBackdrop = styled.div<StyledSidePanelProps>`
 		`}
 `;
 export const StyledSidePanel = styled.div<StyledSidePanelProps>`
-  background-color: hsl(var(--background));
-  box-shadow: -4px 0 6px rgba(0, 0, 0, 0.1);
-  overflow-y: auto;
-  padding: 2.5rem;
+	position: fixed;
+	background-color: hsl(var(--background));
+	box-shadow: -4px 0 6px rgba(0, 0, 0, 0.1);
+	overflow-y: auto;
+	// padding: 0 2.5rem 2.5rem 2.5rem;
 
-  /* Desktop Styles */
-  position: fixed;
-  top: 0;
-  right: 0;
-  height: 100vh;
-  width: 50vw;
+	/* Desktop Styles */
+	top: 0;
+	right: 0;
+	height: 100vh;
+	width: 50vw;
 
-  /* For sliding effect on desktop */
-  transform: translateX(100%);
-  transition: transform 0.3s ease-in-out;
-  z-index: 50;
+	/* For sliding effect on desktop */
+	transform: translateX(100%);
+	transition: transform 0.3s ease-in-out;
+	z-index: 50;
 
-  ${({ $isOpen }) =>
-    $isOpen
-      ? css`
-          transform: translateX(0);
-        `
-      : css`
-          transform: translateX(100%);
-        `}
+	${({ $isOpen }) =>
+		$isOpen
+			? css`
+					transform: translateX(0);
+				`
+			: css`
+					transform: translateX(100%);
+				`}
 
-  /* Mobile Styles */
+	/* Mobile Styles */
   @media (max-width: 768px) {
-    top: auto;
-    bottom: 0;
-    left: 0;
-    width: 100vw;
-    height: 80vh;
+		top: auto;
+		bottom: 0;
+		left: 0;
+		width: 100vw;
+		height: 80vh;
 
-    /* Override the transform for vertical sliding */
-    transform: translateY(100%);
-    transition: transform 0.3s ease-in-out;
+		/* Override the transform for vertical sliding */
+		transform: translateY(100%);
+		transition: transform 0.3s ease-in-out;
 
-    ${({ $isOpen }) =>
-      $isOpen
-        ? css`
-            transform: translateY(0);
-          `
-        : css`
-            transform: translateY(100%);
-          `}
-  }
+		${({ $isOpen }) =>
+			$isOpen
+				? css`
+						transform: translateY(0);
+					`
+				: css`
+						transform: translateY(100%);
+					`}
+	}
 `;
