@@ -5,18 +5,17 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import useFetchAgents from "@/hooks/useFetchAgents";
-import { AppState } from "@/store/store";
 import { agentsApiServer } from "@/utils/constants";
 import { useRouter } from "next/router";
 import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
-import { useSelector } from "react-redux";
 import { v4 as uuidv4 } from "uuid";
 import { Loader } from "@/components/loader";
 import toast from "react-hot-toast";
 import useSignMessage from "@/hooks/useSignMessage";
 import CreaitorsClient from "@/lib/creaitorsClient";
 import { Address } from "viem";
+import useAccount from "@/hooks/useAccount";
 
 export type ConfigureAgentDeployFormValues = {
 	name?: string;
@@ -35,7 +34,7 @@ export default function DeployAgentPage() {
 
 	const { agents, isLoading: isLoadingAgents } = useFetchAgents();
 
-	const { alephAccount } = useSelector((state: AppState) => state.aleph);
+	const { address } = useAccount();
 
 	const agent = useMemo(() => agents.find((agent) => agent.id === agentId), [agents, agentId]);
 
@@ -44,9 +43,9 @@ export default function DeployAgentPage() {
 			name: undefined,
 			agentId: uuidv4(),
 			agentHash: agent?.id,
-			owner: alephAccount?.address,
+			owner: address,
 		};
-	}, [agent, alephAccount]);
+	}, [agent, address]);
 
 	const form = useForm({
 		defaultValues,
@@ -87,6 +86,7 @@ export default function DeployAgentPage() {
 			console.log("response", response);
 
 			if (response.ok) {
+				return;
 				router.push(`/deployed-agents/${data.agentId}`);
 			}
 		} catch (e) {
