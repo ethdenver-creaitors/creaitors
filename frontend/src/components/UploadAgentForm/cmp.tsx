@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import {useCallback, useEffect, useMemo, useState} from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "../ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
@@ -11,6 +11,7 @@ import { Textarea } from "../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { agentCategories } from "@/utils/constants";
 import toast from "react-hot-toast";
+import {PlusCircleIcon, TrashIcon} from "lucide-react";
 
 export type UploadAgentFormValues = {
 	name?: string;
@@ -18,6 +19,7 @@ export type UploadAgentFormValues = {
 	sourceCode?: File | undefined;
 	image?: File | undefined;
 	category?: string;
+	env_variable_keys?: string[];
 };
 
 export default function UploadAgentForm({ onUploadSuccess: handleUploadSuccess }: { onUploadSuccess: () => void }) {
@@ -28,6 +30,7 @@ export default function UploadAgentForm({ onUploadSuccess: handleUploadSuccess }
 			sourceCode: undefined,
 			image: undefined,
 			category: undefined,
+			env_variable_keys: [],
 		};
 	}, []);
 
@@ -35,7 +38,7 @@ export default function UploadAgentForm({ onUploadSuccess: handleUploadSuccess }
 		defaultValues,
 	});
 
-	const { handleSubmit, control } = form;
+	const { setValue, handleSubmit, control } = form;
 
 	const { alephAccount, alephClient } = useSelector((state: AppState) => state.aleph);
 
@@ -80,6 +83,7 @@ export default function UploadAgentForm({ onUploadSuccess: handleUploadSuccess }
 					category: data.category,
 					source_code_hash: storeSourceCodeResponse.item_hash,
 					image: storeImageResponse.item_hash,
+					env_variable_keys: data.env_variable_keys,
 				},
 			}),
 			{
@@ -91,6 +95,28 @@ export default function UploadAgentForm({ onUploadSuccess: handleUploadSuccess }
 
 		handleUploadSuccess();
 	};
+
+	const [envVars, setEnvVars] = useState<string[]>(defaultValues.env_variable_keys);
+
+	const addEnvVar = useCallback(() => {
+		setEnvVars(prevEnvVars => [...prevEnvVars, ""]);
+	}, []);
+
+	const removeEnvVar = useCallback((indexToRemove: number) => {
+		setEnvVars(prevEnvVars => prevEnvVars.filter((_, index) => index !== indexToRemove));
+	}, []);
+
+	const handleEnvVarChange = useCallback((index: number, value: string) => {
+		setEnvVars(prevEnvVars => {
+			const updatedEnvVars = [...prevEnvVars];
+			updatedEnvVars[index] = value;
+			return updatedEnvVars;
+		});
+	}, []);
+
+	useEffect(() => {
+		setValue("env_variable_keys", envVars);
+	}, [envVars, setValue]);
 
 	return (
 		<Form {...form}>
@@ -189,6 +215,43 @@ export default function UploadAgentForm({ onUploadSuccess: handleUploadSuccess }
 						</FormItem>
 					)}
 				/>
+
+				<FormItem>
+					<FormLabel>Environment Variables</FormLabel>
+					<FormDescription>Define environment variable names for your AI Agent.</FormDescription>
+					<FormControl>
+						<div className="flex flex-col gap-2">
+							{envVars.map((envVar, index) => ( // Iterate over the array directly
+								<div key={index} className="flex gap-2 items-center">
+									<div className="grid gap-1.5 flex-1">
+										<FormLabel htmlFor={`env-name-${index}`} className="sr-only">
+											Variable Name
+										</FormLabel>
+										<Input
+											id={`env-name-${index}`}
+											placeholder="VARIABLE_NAME"
+											value={envVar}
+											onChange={(e) => handleEnvVarChange(index, e.target.value)} // Pass index to handler
+										/>
+									</div>
+									<Button
+										variant="destructive"
+										size="icon"
+										onClick={() => removeEnvVar(index)} // Pass index to remove function
+										type="button"
+									>
+										<TrashIcon className="h-4 w-4" />
+									</Button>
+								</div>
+							))}
+							<Button variant="secondary" size="sm" type="button" onClick={addEnvVar}>
+								<PlusCircleIcon className="mr-2 h-4 w-4" />
+								Add Field
+							</Button>
+						</div>
+					</FormControl>
+					<FormMessage />
+				</FormItem>
 
 				<Button type="submit">Submit</Button>
 			</form>

@@ -24,12 +24,16 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import useSignMessage from "@/hooks/useSignMessage";
 import toast from "react-hot-toast";
+import {Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form";
+import {Input} from "@/components/ui/input";
+import {useForm} from "react-hook-form";
 
 export type ConfigureAgentDeployFormValues = {
 	name?: string;
 	agentId?: string;
 	agentHash?: string;
 	owner?: string;
+	env_variables: { [key: string]: string };
 };
 
 export default function DeployAgentsPage() {
@@ -124,18 +128,24 @@ export default function DeployAgentsPage() {
 
 	const { signMessage } = useSignMessage();
 
-	const handleFinishFundWalletStep = useCallback(async () => {
+	const handleFinishFundWalletStep = useCallback(async (data: ConfigureAgentDeployFormValues) => {
 		if (!deployedAgent) return;
 
-		const unsignedAgentKey = `SIGN AGENT ${deployedAgent.owner} ${deployedAgent.id}`;
+		const { name, id, owner, agent_hash } = deployedAgent;
+		const { env_variables } = data;
+
+		if (!name || !id || !owner || !agent_hash || (agent?.env_variable_keys && !env_variables)) return toast.error("Please fill all fields");
+
+		const unsignedAgentKey = `SIGN AGENT ${owner} ${id}`;
 		const signedAgentKey = await signMessage(unsignedAgentKey);
 
 		const requestBody = {
-			name: deployedAgent.name,
-			agent_id: deployedAgent.id,
-			agent_hash: deployedAgent.agent_hash,
-			owner: deployedAgent.owner,
+			name: name,
+			agent_id: id,
+			agent_hash: agent_hash,
+			owner: owner,
 			agent_key: signedAgentKey,
+			env_variables: env_variables,
 		};
 
 		console.log("requestBody", requestBody);
@@ -146,9 +156,9 @@ export default function DeployAgentsPage() {
 			error: "Error configuring agent deployment",
 		});
 
-		const data = await response.json();
+		const responseData = await response.json();
 
-		console.log("data", data);
+
 
 		handleFetchDeployedAgent(deployedAgent.id);
 	}, [creaitorsClient, deployedAgent, signMessage, handleFetchDeployedAgent]);
@@ -158,6 +168,22 @@ export default function DeployAgentsPage() {
 
 		return agentWalletBalance >= deployedAgent.required_tokens;
 	}, [agentWalletBalance, deployedAgent]);
+
+	const defaultValues: ConfigureAgentDeployFormValues = useMemo(() => {
+		return {
+			env_variables: {},
+		};
+	}, []);
+
+	const form = useForm({
+		defaultValues,
+	});
+
+	useEffect(() => {
+		form.reset(defaultValues);
+	}, [defaultValues, form]);
+
+	const { handleSubmit, control } = form;
 
 	const steps = useMemo(() => {
 		return {
@@ -186,9 +212,41 @@ export default function DeployAgentsPage() {
 							</Transaction>
 						)}
 						{!fundTransactionCall && (
-							<Button disabled={!isAgentWalletFunded} onClick={handleFinishFundWalletStep}>
-								Continue
-							</Button>
+							<>
+								<Form {...form}>
+									<form onSubmit={handleSubmit(handleFinishFundWalletStep)} className="flex flex-col gap-4">
+										{agent?.env_variable_keys && agent.env_variable_keys.length > 0 && (
+											<FormItem>
+												<FormLabel>Environment Variables</FormLabel>
+												<FormDescription>Define environment variables for this AI Agent.</FormDescription>
+												<FormControl>
+													<div className="flex flex-col gap-2">
+														{agent.env_variable_keys.map((envName) => (
+															<FormField
+																control={control}
+																name={`env_variables.${envName}`}
+																render={({ field }) => (
+																	<FormItem>
+																		<FormLabel>{envName}</FormLabel>
+																		<FormMessage />
+																		<FormControl>
+																			<Input placeholder="value" {...field} />
+																		</FormControl>
+																	</FormItem>
+																)}
+															/>
+														))}
+													</div>
+												</FormControl>
+												<FormMessage />
+											</FormItem>
+										)}
+										<Button disabled={!isAgentWalletFunded} type="submit">
+											Continue
+										</Button>
+									</form>
+								</Form>
+							</>
 						)}
 					</>
 				),
@@ -282,7 +340,6 @@ export default function DeployAgentsPage() {
 					)}
 				</div>
 			</div>
-			<Button onClick={handleFinishFundWalletStep}>Continue</Button>
 		</PageContainer>
 	);
 }

@@ -7,6 +7,7 @@ export type Agent = {
 	description: string;
 	source_code_hash?: string;
 	category: string;
+	env_variable_keys: string[];
 };
 
 export enum DeployedAgentStatus {
