@@ -25,14 +25,14 @@ export async function getEthersProvider(config: Config, { chainId }: { chainId?:
 	return clientToProvider(client);
 }
 
-export function ellipseString(str?: string): string {
+export function ellipseString(str?: string, charsPerSide: number = 5): string {
 	if (!str) return "";
 	// If the string is short enough, return it unchanged
-	if (str.length <= 10) return str;
+	if (str.length <= charsPerSide * 2) return str;
 
 	// Extract the first 5 characters and the last 5 characters
-	const firstPart = str.slice(0, 5);
-	const lastPart = str.slice(-5);
+	const firstPart = str.slice(0, charsPerSide);
+	const lastPart = str.slice(-charsPerSide);
 
 	// Combine them with an ellipsis in between
 	return `${firstPart}...${lastPart}`;
