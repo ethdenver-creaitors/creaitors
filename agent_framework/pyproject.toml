@@ -1,6 +1,6 @@
 [project]
-name = "libertai-unstoppable-denver-agents"
-version = "0.0.8"
+name = "creaitors"
+version = "0.1.0"
 description = "Wrapper of LibertAI's AI Agents framework to add autonomous behavior (pay for their own computing)"
 authors = [
     { name = "Reza Rahemtola", email = "contact@rezar.fr" }

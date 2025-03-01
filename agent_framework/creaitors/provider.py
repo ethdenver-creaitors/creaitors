@@ -15,7 +15,7 @@ from coinbase_agentkit.network import Network
 from pydantic import BaseModel
 from web3 import Web3
 
-from libertai_unstoppable_denver_agents.constants import (
+from creaitors.constants import (
     ALEPH_ADDRESS,
     REVENUE_SHARE_CREAITOR,
     REVENUE_SHARE_OWNER,
