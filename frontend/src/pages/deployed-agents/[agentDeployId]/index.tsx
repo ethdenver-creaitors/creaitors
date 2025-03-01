@@ -158,6 +158,8 @@ export default function DeployAgentsPage() {
 				error: "Error configuring agent deployment",
 			});
 
+			// Wait 2 seconds to make sure the agent has started the deployment process
+			await new Promise((resolve) => setTimeout(resolve, 2000));
 			handleFetchDeployedAgent(deployedAgent.id);
 		},
 		[deployedAgent, agent, signMessage, creaitorsClient, handleFetchDeployedAgent],
@@ -201,7 +203,9 @@ export default function DeployAgentsPage() {
 								className="flex-1 items-center"
 								calls={[fundTransactionCall]}
 								chainId={base.id}
-								// onSuccess={handleFinishFundWalletStep}
+								onSuccess={() => {
+									agentBalance.refetch();
+								}}
 							>
 								<TransactionButton text={`Fund ${fundTransactionAmount} ETH to AI Agent`} className="w-fit" />
 								<TransactionToast>
@@ -218,7 +222,7 @@ export default function DeployAgentsPage() {
 										{agent?.env_variable_keys && agent.env_variable_keys.length > 0 && (
 											<FormItem>
 												<FormLabel>Environment Variables</FormLabel>
-												<FormDescription>Define environment variables for this AI Agent.</FormDescription>
+												<FormDescription>Define the environment variables used for this AI Agent.</FormDescription>
 												<FormControl>
 													<div className="flex flex-col gap-2">
 														{agent.env_variable_keys.map((envName) => (
@@ -285,12 +289,13 @@ export default function DeployAgentsPage() {
 				order: 0,
 				title: "Alive",
 				action: "Alive",
-				description: "The AI Agent is alive",
+				description: undefined,
 				content: <div>Alive</div>,
 			},
 		};
 	}, [
 		agent,
+		agentBalance,
 		control,
 		form,
 		fundTransactionAmount,
@@ -329,7 +334,6 @@ export default function DeployAgentsPage() {
 						className="min-h-full w-full object-cover rounded-xl"
 						width={0}
 						height={0}
-						// onLoadingComplete={() => setIsImageLoading(false)}
 					/>
 					<Identity address={deployedAgent.wallet_address} chain={base} className="w-ful items-center py-4">
 						<Address isSliced={false} className="italic" />
@@ -341,9 +345,11 @@ export default function DeployAgentsPage() {
 					{currentStep && (
 						<>
 							<p className="text-5xl font-bold mb-12">{currentStep.title}</p>
-							<StepProgressIndicator steps={stepActions} currentStep={currentStep.order} />
+							{currentStep.order > 0 && <StepProgressIndicator steps={stepActions} currentStep={currentStep.order} />}
 							<div className="flex flex-col items-center text-center justify-center gap-8">
-								<div className="max-w-[50%] text-center text-lg italic">{currentStep.description}</div>
+								{!!currentStep?.description && (
+									<div className="max-w-[50%] text-center text-lg italic">{currentStep.description}</div>
+								)}
 								{currentStep.content}
 							</div>
 						</>
