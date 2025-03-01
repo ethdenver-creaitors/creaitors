@@ -5,11 +5,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Menu, X } from "lucide-react";
 import useBreakpoints from "@/hooks/breakpoints/useBreakpoints";
 import { NavigationLink } from "./styles";
-import { GoogleLogin, useGoogleLogin } from "@react-oauth/google";
+import { GoogleLogin } from "@react-oauth/google";
 import { getAccount, getPortfolio, useOkto } from "@okto_web3/react-sdk";
 import toast from "react-hot-toast";
 import LoginDropdown from "@/components/ui/login-dropdown";
 import { WalletModal } from "@coinbase/onchainkit/wallet";
+import { useAccount } from "wagmi";
 
 export default function AppHeader() {
 	const navigationRouter = useNavigationRouter();
@@ -18,6 +19,7 @@ export default function AppHeader() {
 	const { isDesktop } = useBreakpoints();
 	const oktoClient = useOkto();
 	const [isOnchainkitModalOpen, setIsOnchainkitModalOpen] = useState(false);
+	const { isConnected: isWagmiConnected } = useAccount();
 
 	const mobileDropdownMenuRef = useRef<HTMLDivElement>(null);
 
@@ -29,12 +31,6 @@ export default function AppHeader() {
 			{ name: "Marketplace", path: "/marketplace/" },
 		];
 	}, []);
-
-	const loginWithGoogle = useGoogleLogin({
-		flow: "auth-code",
-		onSuccess: (data) => handleGoogleLogin(data),
-		onError: (error) => toast.error(`Google login failed: ${error}`),
-	});
 
 	// Close the menu when switching to desktop
 	useEffect(() => {
@@ -114,13 +110,22 @@ export default function AppHeader() {
 								</NavigationLink>
 							))}
 						</div>
-						<GoogleLogin onSuccess={handleGoogleLogin} />
-						<LoginDropdown
-							handleGoogleLogin={loginWithGoogle}
-							handleWalletLogin={() => setIsOnchainkitModalOpen(true)}
-						/>
+						<div className="hidden">
+							<GoogleLogin onSuccess={handleGoogleLogin} />
+						</div>
+
+						{/*TODO: also check if octo is connected to show custom button*/}
+						{!isWagmiConnected ? (
+							<LoginDropdown
+								handleGoogleLogin={() =>
+									(document.querySelector(".nsm7Bb-HzV7m-LgbsSe-MJoBVe") as HTMLButtonElement).click()
+								}
+								handleWalletLogin={() => setIsOnchainkitModalOpen(true)}
+							/>
+						) : (
+							<AccountButton />
+						)}
 						<WalletModal isOpen={isOnchainkitModalOpen} onClose={() => setIsOnchainkitModalOpen(false)} />
-						<AccountButton />
 					</div>
 				</div>
 			) : (
