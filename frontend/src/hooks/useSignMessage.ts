@@ -1,11 +1,17 @@
+import { AppState } from "@/store/store";
 import { useOkto } from "@okto_web3/react-sdk";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import toast from "react-hot-toast";
+import { useSelector } from "react-redux";
 import { useSignMessage as wagmiUseSignMessage } from "wagmi";
 
 export default function useSignMessage() {
-	const { signMessage: oktoSignMessage } = useOkto();
+	const { googleCredential } = useSelector((state: AppState) => state.connection);
+
+	const oktoClient = useOkto();
 	const { signMessageAsync: wagmiSignMessage } = wagmiUseSignMessage();
+
+	const isOktoConnected = useMemo(() => !!googleCredential, [googleCredential]);
 
 	const notify = useCallback(async (f: Promise<unknown> | (() => Promise<unknown>)) => {
 		return toast.promise(f, {
@@ -17,13 +23,13 @@ export default function useSignMessage() {
 
 	const signMessage = useCallback(
 		async (message: string) => {
-			if (oktoSignMessage) {
-				return await notify(oktoSignMessage(message));
+			if (isOktoConnected) {
+				return await notify(oktoClient.signMessage(message));
 			} else {
 				return await notify(wagmiSignMessage({ message }));
 			}
 		},
-		[notify, oktoSignMessage, wagmiSignMessage],
+		[isOktoConnected, notify, oktoClient, wagmiSignMessage],
 	);
 
 	return { signMessage };

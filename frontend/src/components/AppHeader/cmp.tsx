@@ -108,7 +108,7 @@ export default function AppHeader() {
 				<div className="flex items-center justify-between w-full px-2 gap-3 h-[var(--header-height-desktop)]">
 					<div className="flex items-center gap-4 cursor-pointer" onClick={() => navigationRouter.push("/")}>
 						<Image src="/logo.webp" alt="Logo" width={0} height={0} className="h-20 w-auto" />
-						<h1 className="text-6xl font-accent gradient-primary-light font-bold">CreAItors</h1>
+						<h1 className="text-6xl font-accent text- gradient-primary-light font-bold">CreAItors</h1>
 					</div>
 					<div className="flex items-center gap-6">
 						{/* Navigation Links */}
