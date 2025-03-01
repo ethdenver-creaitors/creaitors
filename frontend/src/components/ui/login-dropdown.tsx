@@ -8,7 +8,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, LogIn, Wallet } from "lucide-react";
+import { LogIn, Wallet } from "lucide-react";
 
 export default function LoginDropdown({
 	handleGoogleLogin,
@@ -24,8 +24,7 @@ export default function LoginDropdown({
 			<DropdownMenuTrigger asChild>
 				<Button variant="outline" className="flex items-center gap-2">
 					<LogIn className="h-4 w-4" />
-					<span>Login</span>
-					<ChevronDown className="h-4 w-4 ml-1" />
+					<span className="font-semibold">Login</span>
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end" className="w-56 p-1">

@@ -5,14 +5,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Menu, X } from "lucide-react";
 import useBreakpoints from "@/hooks/breakpoints/useBreakpoints";
 import { NavigationLink } from "./styles";
-import { GoogleLogin } from "@react-oauth/google";
-import { getAccount, getPortfolio, useOkto } from "@okto_web3/react-sdk";
+import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
+import { useOkto } from "@okto_web3/react-sdk";
 import toast from "react-hot-toast";
 import LoginDropdown from "@/components/ui/login-dropdown";
 import { WalletModal } from "@coinbase/onchainkit/wallet";
 import { useAccount } from "wagmi";
+import { useDispatch, useSelector } from "react-redux";
+import { googleConnect } from "@/store/reducers/connectionSlice";
+import { AppState } from "@/store/store";
 
 export default function AppHeader() {
+	const dispatch = useDispatch();
 	const navigationRouter = useNavigationRouter();
 	const pathname = usePathname();
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -20,7 +24,10 @@ export default function AppHeader() {
 	const oktoClient = useOkto();
 	const [isOnchainkitModalOpen, setIsOnchainkitModalOpen] = useState(false);
 	const { isConnected: isWagmiConnected } = useAccount();
+	const { googleCredential } = useSelector((state: AppState) => state.connection);
+	const isOktoConnected = useMemo(() => !!googleCredential, [googleCredential]);
 
+	console.log("isOktoConnected", isOktoConnected);
 	const mobileDropdownMenuRef = useRef<HTMLDivElement>(null);
 
 	const isActive = useCallback((path: string) => pathname === path, [pathname]);
@@ -55,26 +62,28 @@ export default function AppHeader() {
 		};
 	}, [isMenuOpen]);
 
-	// eslint-disable-next-line
-	async function handleGoogleLogin(credentialResponse: any) {
+	async function handleGoogleLogin(credentialResponse: CredentialResponse) {
 		try {
-			console.log(credentialResponse);
 			await toast.promise(
 				oktoClient.loginUsingOAuth({
-					idToken: credentialResponse.credential,
+					// TODO: Fix ! usage by handlign the case where the credential is undefined
+					idToken: credentialResponse.credential!,
 					provider: "google",
 				}),
 				{
 					loading: "Connecting with Google",
-					success: "Successfully connected",
+					success: () => {
+						dispatch(googleConnect(credentialResponse.credential!));
+						return "Successfully connected";
+					},
 					error: "An error occurred during the connection",
 				},
 			);
 
-			const userAccounts = await getAccount(oktoClient);
-			console.log(userAccounts);
-			const userPortfolio = await getPortfolio(oktoClient);
-			console.log(userPortfolio);
+			// const userAccounts = await getAccount(oktoClient);
+			// console.log("userAccounts", userAccounts);
+			// const userPortfolio = await getPortfolio(oktoClient);
+			// console.log("userPortfolio", userPortfolio);
 
 			// const transferParams = {
 			// 	amount: BigInt("1000000000000000"), // 0.001 ETH
@@ -114,8 +123,8 @@ export default function AppHeader() {
 							<GoogleLogin onSuccess={handleGoogleLogin} />
 						</div>
 
-						{/*TODO: also check if octo is connected to show custom button*/}
-						{!isWagmiConnected ? (
+						{/*TODO: also check if okto is connected to show custom button*/}
+						{!isWagmiConnected && !isOktoConnected ? (
 							<LoginDropdown
 								handleGoogleLogin={() =>
 									(document.querySelector(".nsm7Bb-HzV7m-LgbsSe-MJoBVe") as HTMLButtonElement).click()
