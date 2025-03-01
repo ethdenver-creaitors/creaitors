@@ -76,7 +76,8 @@ export default function DeployAgentPage() {
 				owner: owner as Address,
 				agent_key: signedAgentKey,
 			};
-
+			// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+			// @ts-expect-error
 			const response = await toast.promise(creaitorsClient.createAgent(requestBody), {
 				loading: "Deploying agent...",
 				success: "Agent deployed successfully",

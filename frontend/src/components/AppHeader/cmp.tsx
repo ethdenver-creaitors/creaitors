@@ -9,6 +9,8 @@ import { CredentialResponse, GoogleLogin } from "@react-oauth/google";
 import { useOkto } from "@okto_web3/react-sdk";
 import toast from "react-hot-toast";
 import LoginDropdown from "@/components/ui/login-dropdown";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-expect-error
 import { WalletModal } from "@coinbase/onchainkit/wallet";
 import { useAccount } from "wagmi";
 import { useDispatch, useSelector } from "react-redux";
@@ -151,7 +153,7 @@ export default function AppHeader() {
 							<Image src="/logo.webp" alt="Logo" width={0} height={0} className="h-14 w-auto" />
 						</div>
 
-						<AccountButton withName={false} />
+						<AccountButton />
 					</div>
 					{isMenuOpen && (
 						<div

@@ -142,7 +142,8 @@ export default function DeployAgentsPage() {
 			};
 
 			console.log("requestBody", requestBody);
-
+			// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+			// @ts-expect-error
 			await toast.promise(creaitorsClient.deployAgent(requestBody), {
 				loading: "Configuring agent deployment...",
 				success: "Agent deployment configured successfully",
@@ -158,7 +159,6 @@ export default function DeployAgentsPage() {
 
 	const isAgentWalletFunded = useMemo(() => {
 		if (!deployedAgent) return false;
-
 		return agentWalletBalance >= deployedAgent.required_tokens;
 	}, [agentWalletBalance, deployedAgent]);
 
@@ -183,22 +183,30 @@ export default function DeployAgentsPage() {
 	const [loadingDecisions, setLoadingDecisions] = useState(false);
 	const [errorDecisions, setErrorDecisions] = useState<Error | null>(null);
 
-	// Fetch decisions when the agent is alive
+	// Fetch decisions every 25 seconds when the agent is alive
 	useEffect(() => {
 		if (deployedAgent?.status === DeployedAgentStatus.ALIVE) {
-			setLoadingDecisions(true);
-			// Note: the instance_ip is an IPv6 address so we wrap it in brackets
-			const url = `http://[${deployedAgent.instance_ip}]:8000/survival-logs`;
-			fetch(url)
-				.then((res) => res.json())
-				.then((data) => {
-					setDecisions(data);
-					setLoadingDecisions(false);
-				})
-				.catch((err) => {
-					setErrorDecisions(err);
-					setLoadingDecisions(false);
-				});
+			const fetchDecisions = () => {
+				setLoadingDecisions(true);
+				// Note: the instance_ip is an IPv6 address so we wrap it in brackets
+				const url = `http://[${deployedAgent.instance_ip}]:8000/survival-logs`;
+				fetch(url)
+					.then((res) => res.json())
+					.then((data) => {
+						setDecisions(data);
+						setLoadingDecisions(false);
+					})
+					.catch((err) => {
+						setErrorDecisions(err);
+						setLoadingDecisions(false);
+					});
+			};
+
+			// Fetch immediately
+			fetchDecisions();
+			// Set interval for every 25 seconds
+			const intervalId = setInterval(fetchDecisions, 25000);
+			return () => clearInterval(intervalId);
 		}
 	}, [deployedAgent]);
 
@@ -314,20 +322,22 @@ export default function DeployAgentsPage() {
 							<div>Error loading decisions: {errorDecisions.message}</div>
 						) : decisions ? (
 							<div className="bg-background p-4 rounded-lg border border-foreground/20">
-								{Object.entries(decisions).map(([timestamp, decision]) => (
-									<div
-										key={timestamp}
-										className="border-b border-gray-300 pb-6 pt-6 first:pt-0 last:border-none last:pb-0"
-									>
-										<strong>
-											{new Date(timestamp).toLocaleDateString()} - {new Date(timestamp).toLocaleTimeString()}
-										</strong>
-										<div className="flex items-center justify-center w-full my-2">
-											<Separator className="w-1/3" />
+								{Object.entries(decisions)
+									.sort(([tsA], [tsB]) => new Date(tsB).getTime() - new Date(tsA).getTime())
+									.map(([timestamp, decision]) => (
+										<div
+											key={timestamp}
+											className="border-b border-gray-300 pb-6 pt-6 first:pt-0 last:border-none last:pb-0"
+										>
+											<strong>
+												{new Date(timestamp).toLocaleDateString()} - {new Date(timestamp).toLocaleTimeString()}
+											</strong>
+											<div className="flex items-center justify-center w-full my-2">
+												<Separator className="w-1/3" />
+											</div>
+											<pre className="whitespace-pre-wrap mt-1">{decision}</pre>
 										</div>
-										<pre className="whitespace-pre-wrap mt-1">{decision}</pre>
-									</div>
-								))}
+									))}
 							</div>
 						) : (
 							<div>No decisions available.</div>
@@ -384,7 +394,6 @@ export default function DeployAgentsPage() {
 						width={0}
 						height={0}
 					/>
-
 					<p className="text-lg">{agent.description}</p>
 				</div>
 				<div className="text-center w-full max-w-[66%] px-24">
