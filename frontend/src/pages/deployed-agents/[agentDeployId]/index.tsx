@@ -27,6 +27,7 @@ import toast from "react-hot-toast";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
+import { Separator } from "@/components/ui/separator";
 
 export type ConfigureAgentDeployFormValues = {
 	name?: string;
@@ -54,7 +55,6 @@ export default function DeployAgentsPage() {
 				const response = await creaitorsClient.getAgent(id);
 				const data = await response.json();
 				console.log("fetched deployed agent", data);
-
 				setDeployedAgent(data);
 			} catch (e) {
 				console.error(e);
@@ -65,25 +65,21 @@ export default function DeployAgentsPage() {
 
 	const requiresUserAction = useCallback((agent: DeployedAgent) => {
 		if (!agent) return false;
-
 		return [DeployedAgentStatus.ALIVE, DeployedAgentStatus.PENDING_FUND].includes(agent.status);
 	}, []);
 
 	// If no user action is required, schedule the next poll in 5 seconds
 	useEffect(() => {
 		if (!deployedAgent) return;
-
 		let timerId: NodeJS.Timeout;
 		if (!requiresUserAction(deployedAgent)) {
 			timerId = setTimeout(() => handleFetchDeployedAgent(deployedAgent.id), 5000);
 		}
-
 		return () => clearTimeout(timerId);
 	}, [deployedAgent, requiresUserAction, handleFetchDeployedAgent]);
 
 	useEffect(() => {
 		if (!agentDeployId) return;
-
 		handleFetchDeployedAgent(agentDeployId);
 	}, [agentDeployId, handleFetchDeployedAgent]);
 
@@ -92,7 +88,6 @@ export default function DeployAgentsPage() {
 	const agent = useMemo(() => {
 		if (!deployedAgent) return;
 		if (!agents) return;
-
 		return agents.find((agent) => agent.id === deployedAgent.agent_hash);
 	}, [agents, deployedAgent]);
 
@@ -104,22 +99,18 @@ export default function DeployAgentsPage() {
 
 	const agentWalletBalance = useMemo(() => {
 		if (!agentBalance.data) return 0;
-
 		const { value, decimals } = agentBalance.data;
-
 		return Number(value) / 10 ** decimals;
 	}, [agentBalance]);
 
 	const fundTransactionAmount = useMemo(() => {
 		if (!deployedAgent) return 0;
-
 		return deployedAgent.required_tokens - agentWalletBalance;
 	}, [deployedAgent, agentWalletBalance]);
 
 	const fundTransactionCall = useMemo(() => {
 		if (!deployedAgent) return;
 		if (fundTransactionAmount <= 0) return;
-
 		return {
 			to: deployedAgent.wallet_address,
 			value: BigInt(Math.floor(fundTransactionAmount * 10 ** 18)),
@@ -187,6 +178,30 @@ export default function DeployAgentsPage() {
 
 	const { handleSubmit, control } = form;
 
+	// New state to handle the decisions from the agent (survival logs)
+	const [decisions, setDecisions] = useState<Record<string, string> | null>(null);
+	const [loadingDecisions, setLoadingDecisions] = useState(false);
+	const [errorDecisions, setErrorDecisions] = useState<Error | null>(null);
+
+	// Fetch decisions when the agent is alive
+	useEffect(() => {
+		if (deployedAgent?.status === DeployedAgentStatus.ALIVE) {
+			setLoadingDecisions(true);
+			// Note: the instance_ip is an IPv6 address so we wrap it in brackets
+			const url = `http://[${deployedAgent.instance_ip}]:8000/survival-logs`;
+			fetch(url)
+				.then((res) => res.json())
+				.then((data) => {
+					setDecisions(data);
+					setLoadingDecisions(false);
+				})
+				.catch((err) => {
+					setErrorDecisions(err);
+					setLoadingDecisions(false);
+				});
+		}
+	}, [deployedAgent]);
+
 	const steps = useMemo(() => {
 		return {
 			[DeployedAgentStatus.PENDING_FUND]: {
@@ -216,42 +231,40 @@ export default function DeployAgentsPage() {
 							</Transaction>
 						)}
 						{!fundTransactionCall && (
-							<>
-								<Form {...form}>
-									<form onSubmit={handleSubmit(handleFinishFundWalletStep)} className="flex flex-col gap-4">
-										{agent?.env_variable_keys && agent.env_variable_keys.length > 0 && (
-											<FormItem>
-												<FormLabel>Environment Variables</FormLabel>
-												<FormDescription>Define the environment variables used for this AI Agent.</FormDescription>
-												<FormControl>
-													<div className="flex flex-col gap-2">
-														{agent.env_variable_keys.map((envName) => (
-															<FormField
-																key={envName}
-																control={control}
-																name={`env_variables.${envName}`}
-																render={({ field }) => (
-																	<FormItem>
-																		<FormLabel>{envName}</FormLabel>
-																		<FormMessage />
-																		<FormControl>
-																			<Input placeholder="value" {...field} />
-																		</FormControl>
-																	</FormItem>
-																)}
-															/>
-														))}
-													</div>
-												</FormControl>
-												<FormMessage />
-											</FormItem>
-										)}
-										<Button disabled={!isAgentWalletFunded} type="submit">
-											Continue
-										</Button>
-									</form>
-								</Form>
-							</>
+							<Form {...form}>
+								<form onSubmit={handleSubmit(handleFinishFundWalletStep)} className="flex flex-col gap-4">
+									{agent?.env_variable_keys && agent.env_variable_keys.length > 0 && (
+										<FormItem>
+											<FormLabel>Environment Variables</FormLabel>
+											<FormDescription>Define the environment variables used for this AI Agent.</FormDescription>
+											<FormControl>
+												<div className="flex flex-col gap-2">
+													{agent.env_variable_keys.map((envName) => (
+														<FormField
+															key={envName}
+															control={control}
+															name={`env_variables.${envName}`}
+															render={({ field }) => (
+																<FormItem>
+																	<FormLabel>{envName}</FormLabel>
+																	<FormMessage />
+																	<FormControl>
+																		<Input placeholder="value" {...field} />
+																	</FormControl>
+																</FormItem>
+															)}
+														/>
+													))}
+												</div>
+											</FormControl>
+											<FormMessage />
+										</FormItem>
+									)}
+									<Button disabled={!isAgentWalletFunded} type="submit">
+										Continue
+									</Button>
+								</form>
+							</Form>
 						)}
 					</>
 				),
@@ -290,7 +303,37 @@ export default function DeployAgentsPage() {
 				title: "Alive",
 				action: "Alive",
 				description: undefined,
-				content: <div>Alive</div>,
+				content: (
+					<div className="flex flex-col gap-4">
+						{loadingDecisions ? (
+							<div className="flex flex-col gap-4 items-center justify-center">
+								<div>Loading decisions...</div>
+								<Loader2 className={`animate-spin text-primary`} size={66} />
+							</div>
+						) : errorDecisions ? (
+							<div>Error loading decisions: {errorDecisions.message}</div>
+						) : decisions ? (
+							<div className="bg-background p-4 rounded-lg border border-foreground/20">
+								{Object.entries(decisions).map(([timestamp, decision]) => (
+									<div
+										key={timestamp}
+										className="border-b border-gray-300 pb-6 pt-6 first:pt-0 last:border-none last:pb-0"
+									>
+										<strong>
+											{new Date(timestamp).toLocaleDateString()} - {new Date(timestamp).toLocaleTimeString()}
+										</strong>
+										<div className="flex items-center justify-center w-full my-2">
+											<Separator className="w-1/3" />
+										</div>
+										<pre className="whitespace-pre-wrap mt-1">{decision}</pre>
+									</div>
+								))}
+							</div>
+						) : (
+							<div>No decisions available.</div>
+						)}
+					</div>
+				),
 			},
 		};
 	}, [
@@ -303,11 +346,13 @@ export default function DeployAgentsPage() {
 		handleFinishFundWalletStep,
 		handleSubmit,
 		isAgentWalletFunded,
+		decisions,
+		loadingDecisions,
+		errorDecisions,
 	]);
 
 	const currentStep = useMemo(() => {
 		if (!deployedAgent) return;
-
 		return steps[deployedAgent.status];
 	}, [deployedAgent, steps]);
 
@@ -328,6 +373,10 @@ export default function DeployAgentsPage() {
 			<div className="flex flex-row pt-8">
 				<div className="flex flex-col w-[33%] gap-y-4">
 					<p className="text-5xl font-extrabold">{agent.name}</p>
+					<Identity address={deployedAgent.wallet_address} chain={base} className="w-ful items-center py-4">
+						<Address isSliced={false} className="italic" />
+						<EthBalance className="font-bold mr-2" />
+					</Identity>
 					<Image
 						src={cachedImage || agent.image}
 						alt="Agent image"
@@ -335,10 +384,7 @@ export default function DeployAgentsPage() {
 						width={0}
 						height={0}
 					/>
-					<Identity address={deployedAgent.wallet_address} chain={base} className="w-ful items-center py-4">
-						<Address isSliced={false} className="italic" />
-						<EthBalance className="font-bold mr-2" />
-					</Identity>
+
 					<p className="text-lg">{agent.description}</p>
 				</div>
 				<div className="text-center w-full max-w-[66%] px-24">
