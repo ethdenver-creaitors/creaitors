@@ -76,41 +76,6 @@ def generate_predictable_key(agent_account_key: str) -> bytes:
     return hashlib.sha3_256(agent_proof).digest()
 
 
-FORBIDDEN_HOSTS = [
-    "amazon.com",
-    "apple.com",
-    "facebook.com",
-    "google.com",
-    "google.es",
-    "microsoft.com",
-    "openai.com",
-    "twitter.com",
-    "x.com",
-    "youtube.com",
-]
-
-
-def sanitize_url(url: str) -> str:
-    """Ensure that the URL is valid and not obviously irrelevant.
-
-    Args:
-        url: URL to sanitize.
-    Returns:
-        Sanitized URL.
-    """
-    if not url:
-        msg = "Empty URL"
-        raise aiohttp.InvalidURL(msg)
-    parsed_url: ParseResult = urlparse(url)
-    if parsed_url.scheme not in ["http", "https"]:
-        msg = f"Invalid URL scheme: {parsed_url.scheme}"
-        raise aiohttp.InvalidURL(msg)
-    if parsed_url.hostname in FORBIDDEN_HOSTS:
-        msg = "Invalid URL host"
-        raise aiohttp.InvalidURL(msg)
-    return url.strip("/")
-
-
 async def run_in_subprocess(command: list[str], check: bool = True, stdin_input: bytes | None = None) -> bytes:
     """Run the specified command in a subprocess, returns the stdout of the process."""
     command = [str(arg) for arg in command]
