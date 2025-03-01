@@ -191,7 +191,13 @@ class AgentOrchestration(BaseModel):
                     raise
 
     async def _ssh_deployment(self):
-        await agent_ssh_deployment(agent_orchestration=self)
+        await agent_ssh_deployment(
+            deployment=self.deployment,
+            aleph_account=self.aleph_account,
+            ssh_private_key=self.ssh_private_key,
+            creator_wallet=self.creator_wallet,
+            env_variables=self.env_variables,
+        )
 
         self.deployment.status = AgentDeploymentStatus.ALIVE
         self.deployment.last_update = int(time.time())

@@ -1,22 +1,32 @@
 import io
+from typing import Dict
+
 import paramiko
+
+from aleph.sdk.chains.ethereum import ETHAccount
 
 from backend.agent import generate_fixed_env_variables, generate_env_file_content
 from backend.aleph import get_code_hash, get_code_file
 from backend.config import config
-from backend.orchestrator import AgentOrchestration
+from backend.models import FetchedAgentDeployment
 
 
-async def agent_ssh_deployment(agent_orchestration: AgentOrchestration):
+async def agent_ssh_deployment(
+        deployment: FetchedAgentDeployment,
+        aleph_account: ETHAccount,
+        ssh_private_key: str,
+        creator_wallet: str,
+        env_variables: Dict[str, str]
+):
     # Create a Paramiko SSH client
     ssh_client = paramiko.SSHClient()
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
     # Load private key from string
-    rsa_key = paramiko.RSAKey(file_obj=io.StringIO(agent_orchestration.ssh_private_key))
+    rsa_key = paramiko.RSAKey(file_obj=io.StringIO(ssh_private_key))
 
     # Get code file
-    agent_hash = agent_orchestration.deployment.agent_hash
+    agent_hash = deployment.agent_hash
     code_hash = await get_code_hash(agent_hash)
     if not code_hash:
         raise ValueError(f"Code hash not found for Agent hash {agent_hash}")
@@ -26,7 +36,7 @@ async def agent_ssh_deployment(agent_orchestration: AgentOrchestration):
 
     try:
         # Connect to the server
-        ssh_client.connect(hostname=agent_orchestration.deployment.instance_ip, username="root", pkey=rsa_key)
+        ssh_client.connect(hostname=deployment.instance_ip, username="root", pkey=rsa_key)
 
         # Send the zip with the code
         sftp = ssh_client.open_sftp()
@@ -36,14 +46,14 @@ async def agent_ssh_deployment(agent_orchestration: AgentOrchestration):
 
         # Send the env variable file
         sftp = ssh_client.open_sftp()
-        wallet_private_key = agent_orchestration.aleph_account.export_private_key()
+        wallet_private_key = aleph_account.export_private_key()
 
         fixed_env_variables = generate_fixed_env_variables(
             private_key=wallet_private_key,
-            creator_address=agent_orchestration.creator_wallet,
-            owner_address=agent_orchestration.deployment.owner,
+            creator_address=creator_wallet,
+            owner_address=deployment.owner,
         )
-        content = generate_env_file_content(fixed_env_variables, agent_orchestration.env_variables)
+        content = generate_env_file_content(fixed_env_variables, env_variables)
         remote_path = "/tmp/.env"
         sftp.putfo(io.BytesIO(content), remote_path)
         sftp.close()

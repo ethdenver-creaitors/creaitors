@@ -30,6 +30,10 @@ with open(os.path.join(code_dir, "abis/uniswap_v3_pool.json"), "r") as abi_file:
 w3 = Web3(Web3.HTTPProvider("https://mainnet.base.org"))
 
 
+def web3_from_wei(number: int, unit: str) -> int | Decimal:
+    return Web3.from_wei(number, unit)
+
+
 def convert_aleph_to_eth(required_tokens: Decimal) -> Decimal:
     aleph_pool_contract = w3.eth.contract(
         address=UNISWAP_ALEPH_POOL_ADDRESS, abi=POOL_ABI

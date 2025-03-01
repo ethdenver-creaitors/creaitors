@@ -5,11 +5,10 @@ from fastapi import FastAPI, Depends, Request
 from starlette.middleware.cors import CORSMiddleware
 
 from aleph.sdk.client.authenticated_http import AuthenticatedAlephHttpClient
-from aleph.sdk.client.abstract import MessageFilter
-from aleph_message.models import ItemHash, Chain, MessageType
+from aleph_message.models import Chain
 
 from .agent import get_agent
-from .blockchain import CustomETHAccount
+from .blockchain import CustomETHAccount, web3_from_wei
 from .config import config
 from .models import AgentDeployment, AgentDeploymentStatus, AgentRequest
 from .orchestrator import DeploymentOrchestrator
@@ -131,12 +130,15 @@ async def deploy_agent(
     agent_proof_key = generate_predictable_key(agent_account_key)
     aleph_account = CustomETHAccount(agent_proof_key, chain=Chain.BASE)
     wallet_address = aleph_account.get_address()
-    eth_balance = aleph_account.get_eth_balance()
+    eth_balance = web3_from_wei(int(aleph_account.get_eth_balance()), "ether")
+
+    print(wallet_address)
+
     if eth_balance < MINIMUM_REQUIRED_AMOUNT:
         return {
             "error": True,
             "message": f"Insufficient balance, {'{0:.18f}'.format(MINIMUM_REQUIRED_AMOUNT)} ETH required "
-                       f"on wallet {wallet_address} instead {eth_balance}"
+                       f"on wallet {wallet_address} instead {'{0:.18f}'.format(eth_balance)}"
         }
 
     # Create and start the autonomous agent deployment
@@ -161,14 +163,14 @@ async def get_agent_info(
 ):
     """Get an agent by an agent ID"""
     deployment = orchestrator.get(agent_id)
-    if not deployment:
-        agent = await get_agent(agent_id)
-        if not agent:
-            return {
-                "error": True,
-                "message": f"Agent with id {agent_id} not found",
-            }
-    else:
-        agent = deployment.deployment
+    if deployment:
+        return deployment.deployment
+
+    agent = await get_agent(agent_id)
+    if not agent:
+        return {
+            "error": True,
+            "message": f"Agent with id {agent_id} not found",
+        }
 
     return agent
