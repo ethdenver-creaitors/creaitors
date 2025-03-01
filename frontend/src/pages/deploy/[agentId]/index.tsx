@@ -86,7 +86,6 @@ export default function DeployAgentPage() {
 			console.log("response", response);
 
 			if (response.ok) {
-				return;
 				router.push(`/deployed-agents/${data.agentId}`);
 			}
 		} catch (e) {
