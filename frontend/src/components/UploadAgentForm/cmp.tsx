@@ -1,5 +1,5 @@
-import {useCallback, useEffect, useMemo, useState} from "react";
-import { useForm } from "react-hook-form";
+import { useMemo } from "react";
+import { useForm, useFieldArray } from "react-hook-form";
 import { Button } from "../ui/button";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "../ui/form";
 import { Input } from "../ui/input";
@@ -11,36 +11,44 @@ import { Textarea } from "../ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { agentCategories } from "@/utils/constants";
 import toast from "react-hot-toast";
-import {PlusCircleIcon, TrashIcon} from "lucide-react";
+import { PlusCircleIcon, TrashIcon } from "lucide-react";
 
 export type UploadAgentFormValues = {
 	name?: string;
 	description?: string;
-	sourceCode?: File | undefined;
-	image?: File | undefined;
+	sourceCode?: File;
+	image?: File;
 	category?: string;
-	env_variable_keys?: string[];
+	// Update env_variable_keys to be an array of objects
+	env_variable_keys: { value: string }[];
 };
 
 export default function UploadAgentForm({ onUploadSuccess: handleUploadSuccess }: { onUploadSuccess: () => void }) {
-	const defaultValues: UploadAgentFormValues = useMemo(() => {
-		return {
-			name: undefined,
-			description: undefined,
+	// Set default values accordingly
+	const defaultValues: UploadAgentFormValues = useMemo(
+		() => ({
+			name: "",
+			description: "",
 			sourceCode: undefined,
 			image: undefined,
-			category: undefined,
+			category: "",
 			env_variable_keys: [],
-		};
-	}, []);
+		}),
+		[],
+	);
 
-	const form = useForm({
+	const form = useForm<UploadAgentFormValues>({
 		defaultValues,
 	});
-
-	const { setValue, handleSubmit, control } = form;
+	const { register, handleSubmit, control } = form;
 
 	const { alephAccount, alephClient } = useSelector((state: AppState) => state.aleph);
+
+	// useFieldArray now manages an array of objects
+	const { fields, append, remove } = useFieldArray({
+		control,
+		name: "env_variable_keys",
+	});
 
 	const onSubmit = async (data: UploadAgentFormValues) => {
 		if (!alephAccount) return;
@@ -72,6 +80,8 @@ export default function UploadAgentForm({ onUploadSuccess: handleUploadSuccess }
 			},
 		);
 
+		const envVarKeys = data.env_variable_keys.map((item) => item.value);
+
 		await toast.promise(
 			alephClient.createPost({
 				channel: "test-creaitors",
@@ -83,7 +93,7 @@ export default function UploadAgentForm({ onUploadSuccess: handleUploadSuccess }
 					category: data.category,
 					source_code_hash: storeSourceCodeResponse.item_hash,
 					image: storeImageResponse.item_hash,
-					env_variable_keys: data.env_variable_keys,
+					env_variable_keys: envVarKeys,
 				},
 			}),
 			{
@@ -96,28 +106,6 @@ export default function UploadAgentForm({ onUploadSuccess: handleUploadSuccess }
 		handleUploadSuccess();
 	};
 
-	const [envVars, setEnvVars] = useState<string[]>(defaultValues.env_variable_keys);
-
-	const addEnvVar = useCallback(() => {
-		setEnvVars(prevEnvVars => [...prevEnvVars, ""]);
-	}, []);
-
-	const removeEnvVar = useCallback((indexToRemove: number) => {
-		setEnvVars(prevEnvVars => prevEnvVars.filter((_, index) => index !== indexToRemove));
-	}, []);
-
-	const handleEnvVarChange = useCallback((index: number, value: string) => {
-		setEnvVars(prevEnvVars => {
-			const updatedEnvVars = [...prevEnvVars];
-			updatedEnvVars[index] = value;
-			return updatedEnvVars;
-		});
-	}, []);
-
-	useEffect(() => {
-		setValue("env_variable_keys", envVars);
-	}, [envVars, setValue]);
-
 	return (
 		<Form {...form}>
 			<form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
@@ -129,13 +117,7 @@ export default function UploadAgentForm({ onUploadSuccess: handleUploadSuccess }
 							<FormLabel>Image</FormLabel>
 							<FormMessage />
 							<FormControl>
-								<Input
-									type="file"
-									accept="image/*"
-									onChange={(e) => {
-										field.onChange(e.target.files![0]);
-									}}
-								/>
+								<Input type="file" accept="image/*" onChange={(e) => field.onChange(e.target.files![0])} />
 							</FormControl>
 						</FormItem>
 					)}
@@ -204,13 +186,7 @@ export default function UploadAgentForm({ onUploadSuccess: handleUploadSuccess }
 							<FormLabel>AI Agent source code</FormLabel>
 							<FormMessage />
 							<FormControl>
-								<Input
-									type="file"
-									accept=".zip"
-									onChange={(e) => {
-										field.onChange(e.target.files![0]);
-									}}
-								/>
+								<Input type="file" accept=".zip" onChange={(e) => field.onChange(e.target.files![0])} />
 							</FormControl>
 						</FormItem>
 					)}
@@ -221,30 +197,30 @@ export default function UploadAgentForm({ onUploadSuccess: handleUploadSuccess }
 					<FormDescription>Define environment variable names for your AI Agent.</FormDescription>
 					<FormControl>
 						<div className="flex flex-col gap-2">
-							{envVars.map((envVar, index) => ( // Iterate over the array directly
-								<div key={index} className="flex gap-2 items-center">
+							{fields.map((field, index) => (
+								<div key={field.id} className="flex gap-2 items-center">
 									<div className="grid gap-1.5 flex-1">
-										<FormLabel htmlFor={`env-name-${index}`} className="sr-only">
+										<FormLabel htmlFor={`env-name-${field.id}`} className="sr-only">
 											Variable Name
 										</FormLabel>
 										<Input
-											id={`env-name-${index}`}
+											id={`env-name-${field.id}`}
 											placeholder="VARIABLE_NAME"
-											value={envVar}
-											onChange={(e) => handleEnvVarChange(index, e.target.value)} // Pass index to handler
+											{...register(`env_variable_keys.${index}.value` as const)}
 										/>
 									</div>
-									<Button
-										variant="destructive"
-										size="icon"
-										onClick={() => removeEnvVar(index)} // Pass index to remove function
-										type="button"
-									>
+									<Button variant="destructive" size="icon" onClick={() => remove(index)} type="button">
 										<TrashIcon className="h-4 w-4" />
 									</Button>
 								</div>
 							))}
-							<Button variant="secondary" size="sm" type="button" onClick={addEnvVar}>
+							<Button
+								variant="secondary"
+								size="sm"
+								className="w-fit"
+								type="button"
+								onClick={() => append({ value: "" })}
+							>
 								<PlusCircleIcon className="mr-2 h-4 w-4" />
 								Add Field
 							</Button>

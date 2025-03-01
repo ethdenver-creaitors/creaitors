@@ -27,6 +27,7 @@ export default function AccountButton({ withName = true }: Readonly<{ withName?:
 					<Address />
 					<EthBalance />
 				</Identity>
+				{/* @ts-expect-error: There's a missconfiguration on the types for WalletDropdownLink */}
 				<WalletDropdownLink icon={<Bot />} href="/deployed-agents">
 					My agents
 				</WalletDropdownLink>

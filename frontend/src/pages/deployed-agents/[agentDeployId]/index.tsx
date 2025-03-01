@@ -24,9 +24,9 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import useSignMessage from "@/hooks/useSignMessage";
 import toast from "react-hot-toast";
-import {Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage} from "@/components/ui/form";
-import {Input} from "@/components/ui/input";
-import {useForm} from "react-hook-form";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { useForm } from "react-hook-form";
 
 export type ConfigureAgentDeployFormValues = {
 	name?: string;
@@ -128,40 +128,40 @@ export default function DeployAgentsPage() {
 
 	const { signMessage } = useSignMessage();
 
-	const handleFinishFundWalletStep = useCallback(async (data: ConfigureAgentDeployFormValues) => {
-		if (!deployedAgent) return;
+	const handleFinishFundWalletStep = useCallback(
+		async (data: ConfigureAgentDeployFormValues) => {
+			if (!deployedAgent) return;
 
-		const { name, id, owner, agent_hash } = deployedAgent;
-		const { env_variables } = data;
+			const { name, id, owner, agent_hash } = deployedAgent;
+			const { env_variables } = data;
 
-		if (!name || !id || !owner || !agent_hash || (agent?.env_variable_keys && !env_variables)) return toast.error("Please fill all fields");
+			if (!name || !id || !owner || !agent_hash || (agent?.env_variable_keys && !env_variables))
+				return toast.error("Please fill all fields");
 
-		const unsignedAgentKey = `SIGN AGENT ${owner} ${id}`;
-		const signedAgentKey = await signMessage(unsignedAgentKey);
+			const unsignedAgentKey = `SIGN AGENT ${owner} ${id}`;
+			const signedAgentKey = await signMessage(unsignedAgentKey);
 
-		const requestBody = {
-			name: name,
-			agent_id: id,
-			agent_hash: agent_hash,
-			owner: owner,
-			agent_key: signedAgentKey,
-			env_variables: env_variables,
-		};
+			const requestBody = {
+				name: name,
+				agent_id: id,
+				agent_hash: agent_hash,
+				owner: owner,
+				agent_key: signedAgentKey,
+				env_variables: env_variables,
+			};
 
-		console.log("requestBody", requestBody);
+			console.log("requestBody", requestBody);
 
-		const response = await toast.promise(creaitorsClient.deployAgent(requestBody), {
-			loading: "Configuring agent deployment...",
-			success: "Agent deployment configured successfully",
-			error: "Error configuring agent deployment",
-		});
+			await toast.promise(creaitorsClient.deployAgent(requestBody), {
+				loading: "Configuring agent deployment...",
+				success: "Agent deployment configured successfully",
+				error: "Error configuring agent deployment",
+			});
 
-		const responseData = await response.json();
-
-
-
-		handleFetchDeployedAgent(deployedAgent.id);
-	}, [creaitorsClient, deployedAgent, signMessage, handleFetchDeployedAgent]);
+			handleFetchDeployedAgent(deployedAgent.id);
+		},
+		[deployedAgent, agent, signMessage, creaitorsClient, handleFetchDeployedAgent],
+	);
 
 	const isAgentWalletFunded = useMemo(() => {
 		if (!deployedAgent) return false;
@@ -223,6 +223,7 @@ export default function DeployAgentsPage() {
 													<div className="flex flex-col gap-2">
 														{agent.env_variable_keys.map((envName) => (
 															<FormField
+																key={envName}
 																control={control}
 																name={`env_variables.${envName}`}
 																render={({ field }) => (
@@ -288,7 +289,16 @@ export default function DeployAgentsPage() {
 				content: <div>Alive</div>,
 			},
 		};
-	}, [fundTransactionAmount, fundTransactionCall, handleFinishFundWalletStep, isAgentWalletFunded]);
+	}, [
+		agent,
+		control,
+		form,
+		fundTransactionAmount,
+		fundTransactionCall,
+		handleFinishFundWalletStep,
+		handleSubmit,
+		isAgentWalletFunded,
+	]);
 
 	const currentStep = useMemo(() => {
 		if (!deployedAgent) return;

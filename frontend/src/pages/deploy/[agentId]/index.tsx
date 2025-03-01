@@ -8,7 +8,7 @@ import useFetchAgents from "@/hooks/useFetchAgents";
 import { AppState } from "@/store/store";
 import { agentsApiServer } from "@/utils/constants";
 import { useRouter } from "next/router";
-import { useCallback, useState, useEffect, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
 import { useSelector } from "react-redux";
 import { v4 as uuidv4 } from "uuid";
@@ -56,7 +56,7 @@ export default function DeployAgentPage() {
 		form.reset(defaultValues);
 	}, [defaultValues, form]);
 
-	const { setValue, handleSubmit, control } = form;
+	const { handleSubmit, control } = form;
 
 	const { signMessage } = useSignMessage();
 
@@ -64,7 +64,7 @@ export default function DeployAgentPage() {
 		try {
 			const { name, agentId, owner, agentHash } = data;
 
-			if (!name || !agentId || !owner || !agentHash ) return toast.error("Please fill all fields");
+			if (!name || !agentId || !owner || !agentHash) return toast.error("Please fill all fields");
 
 			const unsignedAgentKey = `SIGN AGENT ${owner} ${agentId}`;
 

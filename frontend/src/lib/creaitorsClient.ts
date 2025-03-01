@@ -6,7 +6,7 @@ export type AgentPost = {
 	agent_hash: string;
 	owner: Address;
 	agent_key: Address;
-	env_variables: { [key: string]: string };
+	env_variables?: { [key: string]: string };
 };
 
 export default class CreaitorsClient {

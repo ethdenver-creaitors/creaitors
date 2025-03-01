@@ -54,6 +54,7 @@ export const StyledSidePanel = styled.div<StyledSidePanelProps>`
 		left: 0;
 		width: 100vw;
 		height: 80vh;
+		border-radius: 1.5rem 1.5rem 0 0;
 
 		/* Override the transform for vertical sliding */
 		transform: translateY(100%);

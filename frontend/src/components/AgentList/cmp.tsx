@@ -30,7 +30,7 @@ export default function AgentList({ agents, isLoadingAgents, onAgentCardClick: h
 	return (
 		<>
 			{/* Search & Filters */}
-			<div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-10">
+			<div className="flex flex-col items-center justify-between gap-4 mb-10">
 				<div className="flex items-center w-full max-w-sm space-x-2 rounded-lg border border-foreground-300 bg-gray-50 px-3.5 py-2">
 					<SearchIcon className="h-4 w-4" />
 					<Input
